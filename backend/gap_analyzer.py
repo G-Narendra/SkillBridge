@@ -104,10 +104,16 @@ ROLE_PROFILES: Dict[str, Dict[str, List[str]]] = {
         "frameworks": ["Next.js", "React", "Node.js"],
         "databases": ["PostgreSQL", "Redis"],
         "tools": ["Git", "Docker", "Linux", "Postman"]
+    },
+    "AI Agent Engineer": {
+        "languages": ["Python", "TypeScript", "SQL"],
+        "frameworks": ["LangChain", "LlamaIndex", "CrewAI", "FastAPI", "AutoGPT"],
+        "databases": ["Pinecone", "ChromaDB", "PostgreSQL", "Redis"],
+        "tools": ["Docker", "Git", "Linux", "OpenAI API"]
     }
 }
 
-# Dynamically integrate all 465 roles from the comprehensive skill catalog
+# Dynamically integrate all 465+ roles from the comprehensive skill catalog
 PROFILES_465_PATH = os.path.join(os.path.dirname(__file__), "role_profiles_465.json")
 if os.path.exists(PROFILES_465_PATH):
     try:
@@ -116,6 +122,12 @@ if os.path.exists(PROFILES_465_PATH):
             for _rname, _rdata in _loaded_profiles.items():
                 if "categories" in _rdata and _rdata["categories"]:
                     ROLE_PROFILES[_rname] = _rdata["categories"]
+                    # Register normalized variants
+                    _clean = _rname.replace("Ai ", "AI ").replace(" Ml", " ML").replace("Api ", "API ")
+                    ROLE_PROFILES[_clean] = _rdata["categories"]
+            # Ensure AI Agent Engineer variations map cleanly
+            if "Ai Agents Engineer" in ROLE_PROFILES and "AI Agent Engineer" not in ROLE_PROFILES:
+                ROLE_PROFILES["AI Agent Engineer"] = ROLE_PROFILES["Ai Agents Engineer"]
     except Exception as _e:
         logger.warning(f"Failed to load role_profiles_465.json: {_e}")
 

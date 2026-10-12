@@ -44,24 +44,9 @@ import { BlueprintInspector } from "@/components/BlueprintInspector";
 import { MultiRoleBenchmark } from "@/components/MultiRoleBenchmark";
 import { ResumeAuditCard } from "@/components/ResumeAuditCard";
 import { PortfolioCardModal } from "@/components/PortfolioCardModal";
+import { ALL_TECH_ROLES } from "@/lib/roles";
 
-const STANDARD_ROLES = [
-  "Data Analyst",
-  "Backend Engineer",
-  "Machine Learning Engineer",
-  "AI Engineer",
-  "Frontend Engineer",
-  "Fullstack Engineer",
-  "DevOps Engineer",
-  "Cloud Architect",
-  "Data Engineer",
-  "Mobile Developer",
-  "Security Engineer",
-  "Systems Engineer",
-  "QA Automation Engineer",
-  "Site Reliability Engineer",
-  "Blockchain Developer"
-];
+const STANDARD_ROLES = ALL_TECH_ROLES;
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080";
 
@@ -166,7 +151,8 @@ export default function Home() {
         if (rolesRes.data?.roles && Array.isArray(rolesRes.data.roles) && isMounted) {
           const names = rolesRes.data.roles.map((r: any) => r.name);
           if (names.length > 0) {
-            setAvailableRoles(names);
+            const merged = Array.from(new Set([...ALL_TECH_ROLES, ...names]));
+            setAvailableRoles(merged);
           }
         }
       } catch (rolesErr) {
