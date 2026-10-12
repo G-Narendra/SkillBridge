@@ -24,8 +24,9 @@ allowed_origins = [
     "http://127.0.0.1:3000",
     "http://localhost:8080",
     "http://127.0.0.1:8080",
+    "https://skillbridge-platfrom-prop.vercel.app",
 ]
-if frontend_url:
+if frontend_url and frontend_url.rstrip("/") not in allowed_origins:
     allowed_origins.append(frontend_url.rstrip("/"))
 
 app.add_middleware(
