@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Universal reverse proxy to backend FastAPI service.
 // Eliminates browser CORS issues and connects directly to the production backend.
-const TARGET_BACKEND = (
-  process.env.BACKEND_API_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://skillbridge-backend-1pm3.onrender.com"
-).replace(/\/$/, "");
+const OFFICIAL_RENDER_BACKEND = "https://skillbridge-backend-1pm3.onrender.com";
+
+const getTargetBackend = () => {
+  const envUrl = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL;
+  if (!envUrl || envUrl.includes("skillbridge-backend.onrender.com")) {
+    return OFFICIAL_RENDER_BACKEND;
+  }
+  return envUrl.replace(/\/$/, "");
+};
+
+const TARGET_BACKEND = getTargetBackend();
 
 async function proxyRequest(request: Request, { params }: { params: { path: string[] } }) {
   const path = params.path ? params.path.join("/") : "";

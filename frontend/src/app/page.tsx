@@ -47,10 +47,17 @@ import { PortfolioCardModal } from "@/components/PortfolioCardModal";
 import { ALL_TECH_ROLES } from "@/lib/roles";
 
 const STANDARD_ROLES = ALL_TECH_ROLES;
-const OFFICIAL_BACKEND_URL = (
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://skillbridge-backend-1pm3.onrender.com"
-).replace(/\/$/, "");
+const OFFICIAL_RENDER_BACKEND = "https://skillbridge-backend-1pm3.onrender.com";
+
+const getOfficialBackendUrl = () => {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!envUrl || envUrl.includes("skillbridge-backend.onrender.com")) {
+    return OFFICIAL_RENDER_BACKEND;
+  }
+  return envUrl.replace(/\/$/, "");
+};
+
+const OFFICIAL_BACKEND_URL = getOfficialBackendUrl();
 
 function getDefaultApiUrl(): string {
   if (typeof window !== "undefined") {
