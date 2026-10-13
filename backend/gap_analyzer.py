@@ -459,21 +459,55 @@ Do not write markdown formatting around the JSON. Return only the raw JSON.
 
     return None
 
-def analyze_gap(candidate_skills: List[str], target_role: str) -> Dict[str, Any]:
+def analyze_gap(
+    candidate_skills: List[str],
+    target_role: str,
+    custom_job_description: Optional[str] = None
+) -> Dict[str, Any]:
     """
-    Evaluates candidate skills against the role taxonomy using weighted formula:
+    Evaluates candidate skills against the role taxonomy or custom requirements using weighted formula:
     Languages: 40%, Frameworks: 30%, Databases: 20%, Tools: 10%.
     Produces category-specific breakdowns and 2 or 4 project proposals.
     """
-    profile = ROLE_PROFILES.get(target_role)
+    profile: Optional[Dict[str, List[str]]] = None
+
+    if custom_job_description and custom_job_description.strip():
+        try:
+            from cv_parser import extract_skills_from_text
+            custom_skills = extract_skills_from_text(custom_job_description)
+            total_custom = sum(len(skills) for skills in custom_skills.values())
+            if total_custom > 0:
+                profile = custom_skills
+        except Exception as e:
+            logger.warning(f"Failed to extract skills from custom job description: {e}")
+
     if not profile:
-        # Dynamic fallback profile for custom roles
-        profile = {
-            "languages": ["Python", "SQL", "TypeScript"],
-            "frameworks": ["FastAPI", "React", "Node.js"],
-            "databases": ["PostgreSQL", "Redis"],
-            "tools": ["Docker", "Git", "Linux", "AWS"]
-        }
+        profile = ROLE_PROFILES.get(target_role)
+
+    if not profile:
+        target_lower = target_role.lower().strip()
+        matched_key = None
+        for k in ROLE_PROFILES.keys():
+            if k.lower() == target_lower:
+                matched_key = k
+                break
+        if not matched_key and fuzz:
+            try:
+                best_match, score = process.extractOne(target_role, list(ROLE_PROFILES.keys()))
+                if score >= 65:
+                    matched_key = best_match
+            except Exception:
+                pass
+
+        if matched_key:
+            profile = ROLE_PROFILES[matched_key]
+        else:
+            profile = {
+                "languages": ["Python", "SQL", "TypeScript"],
+                "frameworks": ["FastAPI", "React", "Node.js"],
+                "databases": ["PostgreSQL", "Redis"],
+                "tools": ["Docker", "Git", "Linux", "AWS"]
+            }
 
     category_breakdown: Dict[str, Dict[str, Any]] = {}
     all_matched: List[str] = []

@@ -1,5 +1,5 @@
 import React from "react";
-import { Github, LogOut, Sparkles, CheckCircle2 } from "lucide-react";
+import { Github, LogOut, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import Image from "next/image";
@@ -11,8 +11,7 @@ export interface ConnectedUser {
   html_url?: string;
   public_repos?: number;
   scopes?: string[];
-  is_sandbox?: boolean;
-  source?: "platform" | "custom_pat" | "sandbox" | "oauth";
+  source?: "platform" | "custom_pat" | "oauth";
   raw_token?: string;
 }
 
@@ -22,7 +21,6 @@ interface ConnectedAccountBarProps {
   onOpenSettings: () => void;
   onDisconnect: () => void;
   onConnectPlatform?: () => void;
-  onConnectDemo: () => void;
 }
 
 export function ConnectedAccountBar({
@@ -31,11 +29,9 @@ export function ConnectedAccountBar({
   onOpenSettings,
   onDisconnect,
   onConnectPlatform,
-  onConnectDemo,
 }: ConnectedAccountBarProps) {
   if (connectedUser) {
     const isPlatform = connectedUser.source === "platform";
-    const isSandbox = connectedUser.is_sandbox || connectedUser.source === "sandbox";
 
     return (
       <div className="flex items-center space-x-2 sm:space-x-3">
@@ -69,13 +65,9 @@ export function ConnectedAccountBar({
             <Badge variant="success" className="hidden sm:inline-flex text-[9px] uppercase tracking-wider py-0 font-medium">
               Platform
             </Badge>
-          ) : isSandbox ? (
-            <Badge variant="warning" className="hidden sm:inline-flex text-[9px] uppercase tracking-wider py-0 font-medium">
-              Preview
-            </Badge>
           ) : (
             <Badge variant="outline" className="hidden sm:inline-flex text-[9px] uppercase tracking-wider py-0 font-medium">
-              PAT
+              {connectedUser.source === "oauth" ? "OAuth" : "PAT"}
             </Badge>
           )}
 
@@ -98,7 +90,7 @@ export function ConnectedAccountBar({
 
   return (
     <div className="flex items-center space-x-2">
-      {platformAccount && onConnectPlatform ? (
+      {platformAccount && onConnectPlatform && (
         <Button
           variant="outline"
           size="sm"
@@ -108,17 +100,6 @@ export function ConnectedAccountBar({
         >
           <Github size={13} className="mr-1.5 text-slate-800 dark:text-slate-200" />
           Connect {platformAccount.login}
-        </Button>
-      ) : (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onConnectDemo}
-          className="text-xs"
-          title="Activate preview account for testing"
-        >
-          <Sparkles size={13} className="mr-1 text-amber-500" />
-          Demo account
         </Button>
       )}
 

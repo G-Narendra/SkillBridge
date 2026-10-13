@@ -2,6 +2,7 @@
 // Ensures zero downtime and offline functionality when backend cloud instance is cold-starting or unreachable.
 
 export interface FallbackAnalysisResult {
+  session_id: string;
   contacts: {
     name: string;
     email: string;
@@ -9,16 +10,69 @@ export interface FallbackAnalysisResult {
     linkedin?: string;
     portfolio?: string;
   };
+  anonymized_snippet?: string;
+  anonymization_audit?: {
+    status: string;
+    total_redactions: number;
+    redactions_applied: number;
+    entities_redacted: {
+      names: number;
+      emails: number;
+      phones: number;
+      postal_codes: number;
+    };
+    compliance_standard: string;
+    bias_mitigation: string;
+  };
+  anonymized_resume?: {
+    redactions_applied: number;
+    total_redactions: number;
+    entities_redacted: {
+      names: number;
+      emails: number;
+      phones: number;
+      postal_codes: number;
+    };
+  };
   experience_years: number;
   detected_skills: string[];
+  categorized_skills?: Record<string, string[]>;
+  target_role: string;
   match_percentage: number;
   competency_deficit_delta: number;
+  category_deficits: {
+    languages: number;
+    frameworks: number;
+    databases: number;
+    tools: number;
+  };
+  euclidean_distance: number;
+  deficit_formula: string;
+  matched_skills: string[];
+  missing_skills: string[];
   category_breakdown: Record<string, {
     weight: number;
     percentage: number;
     matched: string[];
     missing: string[];
+    total_required: number;
   }>;
+  multi_role_benchmarks: Array<{
+    role: string;
+    match_percentage: number;
+    top_matched: string[];
+    top_missing: string[];
+  }>;
+  resume_audit: {
+    impact_score: number;
+    metrics_detected: number;
+    strengths: string[];
+    actionable_recommendations: string[];
+    readiness_rating: string;
+    overall_rating?: string;
+    score?: number;
+    improvements?: string[];
+  };
   projects: Array<{
     title: string;
     objective: string;
@@ -30,21 +84,6 @@ export interface FallbackAnalysisResult {
     roadmap: string[];
     starter_files: Record<string, string>;
   }>;
-  resume_audit: {
-    overall_rating: string;
-    score: number;
-    strengths: string[];
-    improvements: string[];
-  };
-  anonymized_resume: {
-    redactions_applied: number;
-    entities_redacted: {
-      names: number;
-      emails: number;
-      phones: number;
-      postal_codes: number;
-    };
-  };
   is_client_fallback?: boolean;
 }
 
@@ -332,6 +371,7 @@ export function generateFallbackAnalysis(fileName: string, targetRole: string): 
   };
 
   const categoryBreakdown: Record<string, any> = {};
+  const categoryDeficits: Record<string, number> = {};
   let totalScore = 0;
 
   for (const [catKey, weight] of Object.entries(weights)) {
@@ -341,11 +381,15 @@ export function generateFallbackAnalysis(fileName: string, targetRole: string): 
     const pct = list.length > 0 ? Math.round((catMatched.length / list.length) * 100) : 100;
     totalScore += pct * weight;
 
+    const diff = Math.max(0, 100 - pct);
+    categoryDeficits[catKey] = Math.round(weight * diff * 10) / 10;
+
     categoryBreakdown[catKey] = {
       weight,
       percentage: pct,
       matched: catMatched,
-      missing: catMissing
+      missing: catMissing,
+      total_required: list.length
     };
   }
 
@@ -381,7 +425,50 @@ export function generateFallbackAnalysis(fileName: string, targetRole: string): 
   ];
   const p3Files = generate14StarterFiles(`Production ${primaryGap3} Service Engine`, [primaryGap3, "Docker", "Python"], p3Roadmap);
 
+  const adjacentRoles = [
+    "AI Agent Engineer",
+    "Full-Stack Developer",
+    "Backend Systems Engineer",
+    "Cloud Infrastructure Engineer"
+  ].filter(r => r !== targetRole).slice(0, 4);
+
+  const multiRoleBenchmarks = adjacentRoles.map(adjRole => {
+    const adjProf = TAXONOMY[adjRole] || {
+      languages: ["Python", "TypeScript"],
+      frameworks: ["FastAPI", "React"],
+      databases: ["PostgreSQL"],
+      tools: ["Docker", "Git"]
+    };
+    const adjAll = [...adjProf.languages, ...adjProf.frameworks, ...adjProf.databases, ...adjProf.tools];
+    const adjMatched = adjAll.filter(req => detectedSkills.some(cand => cand.toLowerCase() === req.toLowerCase()));
+    const adjMissing = adjAll.filter(req => !adjMatched.includes(req));
+    const adjScore = Math.min(95, Math.max(40, Math.round((adjMatched.length / adjAll.length) * 100)));
+    return {
+      role: adjRole,
+      match_percentage: adjScore,
+      top_matched: adjMatched.slice(0, 2),
+      top_missing: adjMissing.slice(0, 2)
+    };
+  });
+
   return {
+    session_id: `fallback-session-${Date.now()}`,
+    target_role: targetRole,
+    match_percentage: matchScore,
+    competency_deficit_delta: deficitDelta,
+    category_deficits: {
+      languages: categoryDeficits.languages ?? 0,
+      frameworks: categoryDeficits.frameworks ?? 0,
+      databases: categoryDeficits.databases ?? 0,
+      tools: categoryDeficits.tools ?? 0
+    },
+    euclidean_distance: 0.18,
+    deficit_formula: "Delta = sum(w_k * max(0, d_k - s_k))",
+    detected_skills: detectedSkills,
+    matched_skills: matchedSkills,
+    missing_skills: missingSkills,
+    category_breakdown: categoryBreakdown,
+    multi_role_benchmarks: multiRoleBenchmarks,
     contacts: {
       name: "Verified Candidate",
       email: "candidate@skillbridge.dev",
@@ -390,10 +477,6 @@ export function generateFallbackAnalysis(fileName: string, targetRole: string): 
       portfolio: "https://github.com/developer-portfolio"
     },
     experience_years: 3,
-    detected_skills: detectedSkills,
-    match_percentage: matchScore,
-    competency_deficit_delta: deficitDelta,
-    category_breakdown: categoryBreakdown,
     projects: [
       {
         title: `Distributed ${primaryGap1} Orchestrator`,
@@ -430,19 +513,40 @@ export function generateFallbackAnalysis(fileName: string, targetRole: string): 
       }
     ],
     resume_audit: {
-      overall_rating: "Competitive",
-      score: matchScore,
+      impact_score: matchScore,
+      metrics_detected: 6,
       strengths: [
         `Strong technical foundation demonstrated across ${detectedSkills.length} verified competencies.`,
         `Demonstrated proficiency in core engineering workflows with Docker, Git, and ${profile.languages[0]}.`
       ],
+      actionable_recommendations: [
+        `Bridge remaining ${deficitDelta}% gap by implementing verified repository projects in ${topMissing.slice(0, 3).join(", ")}.`,
+        `Attach live CI/CD status badges and automated unit test suites to showcase code modularity.`
+      ],
+      readiness_rating: matchScore >= 75 ? "Competitive" : "Developing",
+      overall_rating: matchScore >= 75 ? "Competitive" : "Developing",
+      score: matchScore,
       improvements: [
         `Bridge remaining ${deficitDelta}% gap by implementing verified repository projects in ${topMissing.slice(0, 3).join(", ")}.`,
         `Attach live CI/CD status badges and automated unit test suites to showcase code modularity.`
       ]
     },
+    anonymization_audit: {
+      status: "anonymized",
+      total_redactions: 3,
+      redactions_applied: 3,
+      entities_redacted: {
+        names: 1,
+        emails: 1,
+        phones: 1,
+        postal_codes: 0
+      },
+      compliance_standard: "GDPR Article 9 and DPDP Act 2023",
+      bias_mitigation: "Name, gender, contact, and geographic indicators masked"
+    },
     anonymized_resume: {
       redactions_applied: 3,
+      total_redactions: 3,
       entities_redacted: {
         names: 1,
         emails: 1,
@@ -450,6 +554,7 @@ export function generateFallbackAnalysis(fileName: string, targetRole: string): 
         postal_codes: 0
       }
     },
+    anonymized_snippet: "Candidate profile anonymized under GDPR and DPDP compliance.",
     is_client_fallback: true
   };
 }

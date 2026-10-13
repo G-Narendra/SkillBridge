@@ -45,24 +45,35 @@ import { MultiRoleBenchmark } from "@/components/MultiRoleBenchmark";
 import { ResumeAuditCard } from "@/components/ResumeAuditCard";
 import { PortfolioCardModal } from "@/components/PortfolioCardModal";
 import { ALL_TECH_ROLES } from "@/lib/roles";
-import { generateFallbackAnalysis } from "@/lib/fallbackEngine";
+import { ApiSettingsModal } from "@/components/ApiSettingsModal";
 
 const STANDARD_ROLES = ALL_TECH_ROLES;
 
-const DEFAULT_API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080";
-
-function getActiveApiUrl(): string {
+function getDefaultApiUrl(): string {
   if (typeof window !== "undefined") {
     const custom = localStorage.getItem("skillbridge_api_url");
     if (custom && custom.trim()) return custom.trim().replace(/\/$/, "");
+    if (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+      return "/api/backend";
+    }
   }
-  return DEFAULT_API_BASE_URL.replace(/\/$/, "");
+  return (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080").replace(/\/$/, "");
 }
-
-const API_BASE_URL = typeof window !== "undefined" ? getActiveApiUrl() : DEFAULT_API_BASE_URL;
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
+  const [apiBaseUrl, setApiBaseUrl] = useState<string>(getDefaultApiUrl);
+  const [apiSettingsOpen, setApiSettingsOpen] = useState(false);
+  const [backendHealth, setBackendHealth] = useState<{
+    status: "online" | "offline" | "checking";
+    latencyMs?: number;
+    rolesCount?: number;
+    service?: string;
+    error?: string;
+  }>({ status: "checking" });
+  const [customJobDescription, setCustomJobDescription] = useState("");
+  const [showCustomJobDescription, setShowCustomJobDescription] = useState(false);
+
   const [targetRole, setTargetRole] = useState("Data Analyst");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [analysis, setAnalysis] = useState<any>(null);
@@ -101,7 +112,6 @@ export default function Home() {
 
   // Provisioning parameters
   const [platformProvider, setPlatformProvider] = useState<"github" | "gitlab">("github");
-  const [useSandboxMode, setUseSandboxMode] = useState(false);
   const [provisioningState, setProvisioningState] = useState<{
     status: "idle" | "running" | "success" | "error";
     step: number;
@@ -114,25 +124,83 @@ export default function Home() {
     result: null
   });
 
+  // Check backend API operational health
+  const checkBackendHealth = async (urlToCheck?: string) => {
+    const target = (urlToCheck || apiBaseUrl || "").trim().replace(/\/$/, "");
+    setBackendHealth((prev) => ({ ...prev, status: "checking" }));
+    const startTime = performance.now();
+    try {
+      const endpoint = target.startsWith("http")
+        ? `${target}/api/health`
+        : `${target}/health`;
+
+      const res = await axios.get(endpoint, {
+        headers: target.startsWith("http")
+          ? { "x-backend-url": target }
+          : undefined,
+        timeout: 10000
+      });
+      const elapsed = Math.round(performance.now() - startTime);
+      setBackendHealth({
+        status: "online",
+        latencyMs: elapsed,
+        rolesCount: res.data?.roles_available || 465,
+        service: res.data?.service || "SkillBridge AI Backend"
+      });
+      return true;
+    } catch (err: any) {
+      setBackendHealth({
+        status: "offline",
+        error: err.response?.data?.detail || err.message || "Endpoint offline"
+      });
+      return false;
+    }
+  };
+
+  const handleSaveApiUrl = (newUrl: string) => {
+    const clean = newUrl.trim().replace(/\/$/, "");
+    setApiBaseUrl(clean);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("skillbridge_api_url", clean);
+    }
+    checkBackendHealth(clean);
+  };
+
   // Query platform GitHub status, load saved PAT, and fetch 465+ dynamic roles
   useEffect(() => {
     let isMounted = true;
 
     async function initializePlatform() {
+      // Check backend health
+      checkBackendHealth(apiBaseUrl);
+
       // 1. Check if user previously saved a custom PAT
       const savedToken = typeof window !== "undefined" ? localStorage.getItem("skillbridge_pat") : null;
+
       if (savedToken) {
         try {
-          const res = await axios.post(`${API_BASE_URL}/api/github/validate-token`, { token: savedToken });
-          if (res.data?.valid && isMounted) {
+          const authHeader = savedToken.startsWith("github_pat_") ? `Bearer ${savedToken}` : `token ${savedToken}`;
+          const ghRes = await axios.get("https://api.github.com/user", {
+            headers: {
+              Authorization: authHeader,
+              Accept: "application/vnd.github.v3+json"
+            },
+            timeout: 6000
+          });
+          if (ghRes.data?.login && isMounted) {
             setConnectedUser({
-              ...res.data,
-              raw_token: savedToken,
-              source: "custom_pat"
+              login: ghRes.data.login,
+              name: ghRes.data.name || ghRes.data.login,
+              avatar_url: ghRes.data.avatar_url,
+              html_url: ghRes.data.html_url,
+              public_repos: ghRes.data.public_repos || 0,
+              scopes: ["repo", "read:user"],
+              source: "custom_pat",
+              raw_token: savedToken
             });
           }
-        } catch {
-          if (typeof window !== "undefined") {
+        } catch (ghErr: any) {
+          if (ghErr.response?.status === 401 && typeof window !== "undefined") {
             localStorage.removeItem("skillbridge_pat");
           }
         }
@@ -140,7 +208,10 @@ export default function Home() {
 
       // 2. Query platform GitHub status from backend
       try {
-        const res = await axios.get(`${API_BASE_URL}/api/github/status`);
+        const res = await axios.get(`${apiBaseUrl}/api/github/status`, {
+          headers: apiBaseUrl.startsWith("http") ? { "x-backend-url": apiBaseUrl } : undefined,
+          timeout: 6000
+        });
         if (res.data?.configured && res.data?.valid && isMounted) {
           const account: ConnectedUser = {
             ...res.data,
@@ -148,17 +219,21 @@ export default function Home() {
             source: "platform"
           };
           setPlatformAccount(account);
-          if (!savedToken) {
-            setConnectedUser(account);
-          }
+        } else if (isMounted) {
+          setPlatformAccount(null);
         }
-      } catch (err) {
-        console.warn("Unable to check GitHub platform status:", err);
+      } catch {
+        if (isMounted) {
+          setPlatformAccount(null);
+        }
       }
 
-      // 3. Load full 465+ technology roles from backend API
+      // 3. Load dynamic technology roles catalog
       try {
-        const rolesRes = await axios.get(`${API_BASE_URL}/api/roles`);
+        const rolesRes = await axios.get(`${apiBaseUrl}/api/roles`, {
+          headers: apiBaseUrl.startsWith("http") ? { "x-backend-url": apiBaseUrl } : undefined,
+          timeout: 6000
+        });
         if (rolesRes.data?.roles && Array.isArray(rolesRes.data.roles) && isMounted) {
           const names = rolesRes.data.roles.map((r: any) => r.name);
           if (names.length > 0) {
@@ -166,8 +241,8 @@ export default function Home() {
             setAvailableRoles(merged);
           }
         }
-      } catch (rolesErr) {
-        console.warn("Unable to fetch dynamic roles catalog:", rolesErr);
+      } catch {
+        // Retain full default standard catalog if backend offline
       }
     }
 
@@ -176,7 +251,8 @@ export default function Home() {
     return () => {
       isMounted = false;
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiBaseUrl]);
 
   // Automatically link NextAuth session if available
   useEffect(() => {
@@ -187,7 +263,6 @@ export default function Home() {
         avatar_url: session.user.image || undefined,
         public_repos: 10,
         scopes: ["repo", "read:user"],
-        is_sandbox: false,
         source: "oauth"
       });
     }
@@ -205,27 +280,13 @@ export default function Home() {
     }
   };
 
-  // Connect demo profile
-  const handleConnectDemo = async () => {
-    setTokenValidating(true);
-    setConnectedUser({
-      login: "developer-preview",
-      name: "Verified Developer",
-      avatar_url: "https://avatars.githubusercontent.com/u/583231?v=4",
-      public_repos: 18,
-      scopes: ["repo", "read:user"],
-      is_sandbox: true,
-      source: "sandbox"
-    });
-    setAuthSettingsOpen(false);
-    setTokenValidating(false);
-  };
-
   // Device Code Authorization Flow (No PAT generation needed)
   const handleStartDeviceFlow = async () => {
     setDeviceFlowState({ status: "requesting" });
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/auth/github/device/init`);
+      const res = await axios.post(`${apiBaseUrl}/api/auth/github/device/init`, {}, {
+        headers: apiBaseUrl.startsWith("http") ? { "x-backend-url": apiBaseUrl } : undefined,
+      });
       if (res.data?.supported && res.data?.user_code) {
         setDeviceFlowState({
           status: "ready",
@@ -237,7 +298,7 @@ export default function Home() {
       } else {
         setDeviceFlowState({
           status: "error",
-          error: res.data?.error || "Device flow is unavailable. Please authorize using the platform account.",
+          error: res.data?.error || "Device flow is unavailable on current backend.",
         });
       }
     } catch (err: any) {
@@ -255,8 +316,10 @@ export default function Home() {
     const check = async () => {
       if (isCancelled) return;
       try {
-        const pollRes = await axios.post(`${API_BASE_URL}/api/auth/github/device/poll`, {
+        const pollRes = await axios.post(`${apiBaseUrl}/api/auth/github/device/poll`, {
           device_code: deviceCode,
+        }, {
+          headers: apiBaseUrl.startsWith("http") ? { "x-backend-url": apiBaseUrl } : undefined,
         });
 
         if (pollRes.data?.status === "authorized" && pollRes.data?.access_token) {
@@ -310,34 +373,37 @@ export default function Home() {
     setTokenValidating(true);
     setTokenError("");
 
-    const token = tokenInput.trim();
+    const rawInput = tokenInput.trim();
+    const token = rawInput
+      .replace(/^Bearer\s+/i, "")
+      .replace(/^token\s+/i, "")
+      .replace(/^['"]|['"]$/g, "");
 
-    // 1. Attempt platform backend validation
+    // Direct GitHub REST API validation against real GitHub user endpoint
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/github/validate-token`, { token }, { timeout: 4000 });
-      if (res.data?.valid) {
-        if (typeof window !== "undefined") {
-          localStorage.setItem("skillbridge_pat", token);
+      let ghRes;
+      try {
+        ghRes = await axios.get("https://api.github.com/user", {
+          headers: {
+            Authorization: `token ${token}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+          timeout: 8000,
+        });
+      } catch (tokenErr: any) {
+        if (tokenErr.response?.status === 401) {
+          // Retry with Bearer header for fine-grained personal tokens
+          ghRes = await axios.get("https://api.github.com/user", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/vnd.github.v3+json",
+            },
+            timeout: 8000,
+          });
+        } else {
+          throw tokenErr;
         }
-        setConnectedUser({ ...res.data, raw_token: token, source: "custom_pat" });
-        setTokenInput("");
-        setAuthSettingsOpen(false);
-        setTokenValidating(false);
-        return;
       }
-    } catch {
-      // Backend is offline or cold-starting; proceed directly to GitHub API
-    }
-
-    // 2. Direct GitHub REST API validation (browser CORS compliant)
-    try {
-      const ghRes = await axios.get("https://api.github.com/user", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github.v3+json",
-        },
-        timeout: 8000,
-      });
 
       if (ghRes.data && ghRes.data.login) {
         if (typeof window !== "undefined") {
@@ -350,22 +416,23 @@ export default function Home() {
           html_url: ghRes.data.html_url,
           public_repos: ghRes.data.public_repos || 0,
           scopes: ["repo", "read:user"],
-          is_sandbox: false,
           source: "custom_pat",
           raw_token: token,
         });
         setTokenInput("");
         setAuthSettingsOpen(false);
-      } else {
-        setTokenError("GitHub returned an unexpected response. Please verify the personal access token.");
+        setTokenValidating(false);
+        return;
       }
     } catch (ghErr: any) {
       if (ghErr.response?.status === 401) {
-        setTokenError("GitHub rejected credentials: Personal Access Token is invalid, expired, or missing permissions.");
+        setTokenError("GitHub rejected credentials: Check that your Personal Access Token is valid and has 'repo' scope.");
       } else if (ghErr.response?.data?.message) {
         setTokenError(`GitHub API: ${ghErr.response.data.message}`);
+      } else if (ghErr.message === "Network Error") {
+        setTokenError("Network error reaching api.github.com. Please check your internet connection.");
       } else {
-        setTokenError("Invalid developer credentials. Please enter a valid GitHub Personal Access Token.");
+        setTokenError("Invalid developer credentials. Please enter a valid GitHub Personal Access Token with 'repo' scope.");
       }
     } finally {
       setTokenValidating(false);
@@ -396,26 +463,24 @@ export default function Home() {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("target_job", roleToUse);
+    if (customJobDescription.trim()) {
+      formData.append("job_description", customJobDescription.trim());
+    }
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/resume/parse`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        timeout: 25000
+      const response = await axios.post(`${apiBaseUrl}/api/resume/parse`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          "x-backend-url": apiBaseUrl.startsWith("http") ? apiBaseUrl : undefined
+        },
+        timeout: 45000
       });
       setAnalysis(response.data);
       setStatus("success");
     } catch (err: any) {
-      console.warn("Backend API unavailable, activating Client-Side Intelligence Engine:", err);
-      try {
-        const clientAnalysis = generateFallbackAnalysis(file.name, roleToUse);
-        setAnalysis(clientAnalysis);
-        setStatus("success");
-      } catch (clientErr) {
-        console.error(clientErr);
-        const detail = err.response?.data?.detail || err.message || "Failed to communicate with backend service.";
-        setErrorMessage(detail);
-        setStatus("error");
-      }
+      const detail = err.response?.data?.detail || err.message || "Unable to reach the backend parsing service.";
+      setErrorMessage(detail);
+      setStatus("error");
     }
   };
 
@@ -439,19 +504,25 @@ export default function Home() {
   const executeProvisioning = async () => {
     if (!selectedBlueprint) return;
 
-    let tokenToSend = "default";
-    if (useSandboxMode) {
-      tokenToSend = "sandbox";
-    } else if (connectedUser?.raw_token) {
+    let tokenToSend = "";
+    if (connectedUser?.raw_token) {
       tokenToSend = connectedUser.raw_token;
-    } else if (connectedUser?.is_sandbox) {
-      tokenToSend = "sandbox";
     } else if (connectedUser?.source === "platform") {
       tokenToSend = "default";
     } else if (session?.accessToken) {
       tokenToSend = session.accessToken;
-    } else if (connectedUser?.login) {
-      tokenToSend = "default";
+    } else if (tokenInput.trim()) {
+      tokenToSend = tokenInput.trim();
+    }
+
+    if (!tokenToSend) {
+      setProvisioningState({
+        status: "error",
+        step: 0,
+        message: "A valid Personal Access Token with 'repo' scope is required to provision this repository.",
+        result: null
+      });
+      return;
     }
 
     setProvisioningState({
@@ -468,7 +539,7 @@ export default function Home() {
           step: 2,
           message: "Creating remote repository and verifying branch permissions..."
         }));
-      }, 600);
+      }, 800);
 
       setTimeout(() => {
         setProvisioningState((prev) => ({
@@ -476,18 +547,10 @@ export default function Home() {
           step: 3,
           message: "Synthesizing atomic Git tree commit and multi-file architecture..."
         }));
-      }, 1400);
-
-      setTimeout(() => {
-        setProvisioningState((prev) => ({
-          ...prev,
-          step: 3,
-          message: "Publishing milestone tracking issues and verification gates..."
-        }));
-      }, 3000);
+      }, 2000);
 
       const response = await axios.post(
-        `${API_BASE_URL}/api/provision`,
+        `${apiBaseUrl}/api/provision`,
         {
           title: selectedBlueprint.title,
           tech_stack: selectedBlueprint.tech_stack,
@@ -496,31 +559,32 @@ export default function Home() {
           token: tokenToSend,
           provider: platformProvider
         },
-        { timeout: 120000 }
+        {
+          headers: apiBaseUrl.startsWith("http")
+            ? { "x-backend-url": apiBaseUrl }
+            : undefined,
+          timeout: 120000
+        }
       );
 
       setProvisioningState({
         status: "success",
         step: 4,
-        message: "Repository successfully provisioned and milestone issues populated.",
+        message: "Repository successfully provisioned and milestone issues populated on GitHub.",
         result: response.data
       });
     } catch (err: any) {
-      console.warn("Backend provisioning unavailable, activating Sandbox simulation:", err);
-      const cleanSlug = selectedBlueprint.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const errorMsg =
+        err.response?.data?.detail ||
+        err.response?.data?.error ||
+        err.message ||
+        "Failed to provision repository on remote platform.";
+
       setProvisioningState({
-        status: "success",
-        step: 4,
-        message: "Repository successfully simulated and verified in sandbox environment.",
-        result: {
-          success: true,
-          repo_name: cleanSlug,
-          html_url: `https://github.com/${connectedUser?.login || "sandbox"}/${cleanSlug}`,
-          files_count: Object.keys(selectedBlueprint.starter_files || {}).length || 14,
-          issues_count: 4,
-          mode: "sandbox",
-          commit_sha: "9fc88508"
-        }
+        status: "error",
+        step: 0,
+        message: `Provisioning failed: ${errorMsg}`,
+        result: null
       });
     }
   };
@@ -640,6 +704,37 @@ Generated: ${new Date().toISOString()}
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-3">
+            <button
+              type="button"
+              onClick={() => setApiSettingsOpen(true)}
+              className={`group flex items-center space-x-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-medium backdrop-blur-md transition-all ${
+                backendHealth.status === "online"
+                  ? "border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 hover:border-emerald-500/50"
+                  : backendHealth.status === "checking"
+                  ? "border-amber-500/30 bg-amber-50/70 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400"
+                  : "border-rose-500/30 bg-rose-50/70 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 hover:border-rose-500/50"
+              }`}
+              title={`Active API: ${apiBaseUrl} (Click to test or configure)`}
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  backendHealth.status === "online"
+                    ? "bg-emerald-500 animate-pulse"
+                    : backendHealth.status === "checking"
+                    ? "bg-amber-500"
+                    : "bg-rose-500"
+                }`}
+              />
+              <span className="hidden sm:inline">
+                {backendHealth.status === "online"
+                  ? `API Online (${backendHealth.latencyMs ? `${backendHealth.latencyMs}ms` : "Active"})`
+                  : backendHealth.status === "checking"
+                  ? "Checking API..."
+                  : "API Offline"}
+              </span>
+              <span className="sm:hidden font-mono text-[10px]">API</span>
+            </button>
+
             <ThemeToggle />
 
             <ConnectedAccountBar
@@ -648,7 +743,6 @@ Generated: ${new Date().toISOString()}
               onOpenSettings={() => setAuthSettingsOpen(true)}
               onDisconnect={handleDisconnect}
               onConnectPlatform={handleConnectPlatform}
-              onConnectDemo={handleConnectDemo}
             />
           </div>
         </div>
@@ -690,6 +784,36 @@ Generated: ${new Date().toISOString()}
                   />
                 </div>
 
+                {/* Dynamic Custom Job Description / Skills Option */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomJobDescription(!showCustomJobDescription)}
+                      className="text-[11px] font-medium text-[#0071e3] hover:underline flex items-center"
+                    >
+                      <span>{showCustomJobDescription ? "Hide custom requirements" : "+ Add custom job requirements (Optional)"}</span>
+                    </button>
+                    {customJobDescription.trim() && (
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Custom active</span>
+                    )}
+                  </div>
+                  {showCustomJobDescription && (
+                    <div className="space-y-1.5 pt-1">
+                      <textarea
+                        value={customJobDescription}
+                        onChange={(e) => setCustomJobDescription(e.target.value)}
+                        placeholder="Paste job description, required tech stack, or specific qualification criteria to benchmark against dynamically..."
+                        rows={3}
+                        className="w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0f172a] p-2.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:border-[#0071e3] focus:outline-none"
+                      />
+                      <p className="text-[10px] text-slate-500">
+                        Dynamically tests candidate competencies against specific job requirements.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Resume document
@@ -727,19 +851,19 @@ Generated: ${new Date().toISOString()}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-xs">
-                  {analysis.contacts.name && (
+                  {analysis.contacts?.name && (
                     <div className="flex justify-between text-slate-700 dark:text-slate-300">
                       <span className="text-slate-400">Name:</span>
                       <span className="font-semibold text-slate-900 dark:text-white">{analysis.contacts.name}</span>
                     </div>
                   )}
-                  {analysis.contacts.email && (
+                  {analysis.contacts?.email && (
                     <div className="flex justify-between text-slate-700 dark:text-slate-300">
                       <span className="text-slate-400">Email:</span>
                       <span className="font-mono truncate max-w-[170px]">{analysis.contacts.email}</span>
                     </div>
                   )}
-                  {analysis.contacts.portfolio &&
+                  {analysis.contacts?.portfolio &&
                     !analysis.contacts.portfolio.toLowerCase().includes("b.tech") &&
                     !analysis.contacts.portfolio.toLowerCase().includes("m.tech") && (
                     <div className="flex justify-between text-slate-700 dark:text-slate-300">
@@ -754,7 +878,7 @@ Generated: ${new Date().toISOString()}
                       </a>
                     </div>
                   )}
-                  {analysis.contacts.linkedin && (
+                  {analysis.contacts?.linkedin && (
                     <div className="flex justify-between text-slate-700 dark:text-slate-300">
                       <span className="text-slate-400">LinkedIn:</span>
                       <a
@@ -829,9 +953,14 @@ Generated: ${new Date().toISOString()}
                     Analysis could not proceed
                   </h3>
                   <p className="text-xs text-rose-600 dark:text-rose-400 mb-4">{errorMessage}</p>
-                  <Button variant="secondary" size="sm" onClick={() => executeAnalysis()}>
-                    Retry analysis
-                  </Button>
+                  <div className="flex items-center space-x-3">
+                    <Button variant="secondary" size="sm" onClick={() => executeAnalysis()}>
+                      Retry analysis
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setApiSettingsOpen(true)}>
+                      Configure API endpoint
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -893,7 +1022,7 @@ Generated: ${new Date().toISOString()}
                             Verified competencies
                           </span>
                           <span className="text-2xl font-bold font-mono tabular-nums text-emerald-700 dark:text-emerald-300">
-                            {analysis.matched_skills.length}
+                            {analysis.matched_skills?.length ?? 0}
                           </span>
                         </div>
                         <div className="rounded-xl border border-rose-500/20 bg-rose-50/50 dark:bg-rose-500/10 p-3">
@@ -901,7 +1030,7 @@ Generated: ${new Date().toISOString()}
                             Identified skill gaps
                           </span>
                           <span className="text-2xl font-bold font-mono tabular-nums text-rose-700 dark:text-rose-300">
-                            {analysis.missing_skills.length}
+                            {analysis.missing_skills?.length ?? 0}
                           </span>
                         </div>
                       </CardContent>
@@ -1098,7 +1227,7 @@ Generated: ${new Date().toISOString()}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {analysis.projects.map((project: any, idx: number) => (
+                      {(analysis.projects || []).map((project: any, idx: number) => (
                         <Card
                           key={idx}
                           className="flex flex-col justify-between border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0f172a]/80 transition-all hover:border-[#0071e3]/60 shadow-[0_2px_12px_rgba(0,0,0,0.02)]"
@@ -1279,26 +1408,11 @@ Generated: ${new Date().toISOString()}
 
                 {/* Authentication Options */}
                 <div className="space-y-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#1e293b]/50 p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      Authentication mode
-                    </span>
-                    <label className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={useSandboxMode}
-                        onChange={(e) => setUseSandboxMode(e.target.checked)}
-                        className="rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-[#0071e3] focus:ring-[#0071e3]"
-                      />
-                      <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">Sandbox dry-run</span>
-                    </label>
-                  </div>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                    Developer Authentication
+                  </span>
 
-                  {useSandboxMode ? (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                      Sandbox mode simulates repository provisioning, commit hashing, and issue generation without calling remote developer APIs.
-                    </p>
-                  ) : connectedUser && platformProvider === "github" ? (
+                  {connectedUser && platformProvider === "github" ? (
                     <div className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10 p-3">
                       <div className="flex items-center space-x-2.5">
                         {connectedUser.avatar_url ? (
@@ -1317,13 +1431,25 @@ Generated: ${new Date().toISOString()}
                           Target account: <strong className="font-mono">{connectedUser.login}</strong>
                         </span>
                       </div>
-                      <Badge variant="success" className="text-[10px]">Active credentials</Badge>
+                      <Badge variant="success" className="text-[10px]">Connected</Badge>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <label className="text-xs text-slate-600 dark:text-slate-400 block">
-                        Developer personal access token:
-                      </label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs text-slate-600 dark:text-slate-400">
+                          Personal access token ({platformProvider === "gitlab" ? "api scope" : "repo scope"}):
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProvisionModalOpen(false);
+                            setAuthSettingsOpen(true);
+                          }}
+                          className="text-[11px] text-[#0071e3] hover:underline"
+                        >
+                          Connect GitHub account
+                        </button>
+                      </div>
                       <input
                         type="password"
                         value={tokenInput}
@@ -1332,7 +1458,7 @@ Generated: ${new Date().toISOString()}
                         className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] px-3 py-2 text-xs font-mono text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:border-[#0071e3] focus:outline-none"
                       />
                       <p className="text-[11px] text-slate-500">
-                        Tokens are used strictly for this provisioning call and are not stored permanently.
+                        Tokens are transmitted securely to create your repository and milestone issues directly on your account.
                       </p>
                     </div>
                   )}
@@ -1344,7 +1470,7 @@ Generated: ${new Date().toISOString()}
                   </Button>
                   <Button size="sm" onClick={executeProvisioning}>
                     <FolderGit2 size={14} className="mr-1.5" />
-                    {useSandboxMode ? "Run sandbox provisioning" : "Provision repository"}
+                    Provision repository
                   </Button>
                 </div>
               </div>
@@ -1367,9 +1493,7 @@ Generated: ${new Date().toISOString()}
                     <h4 className="text-sm font-semibold">Repository provisioned successfully</h4>
                   </div>
                   <p className="text-xs text-slate-600 dark:text-slate-300">
-                    {provisioningState.result?.is_sandbox
-                      ? "Sandbox simulation verified project specifications and issue templates."
-                      : "The code repository is live under your account."}
+                    The code repository is live under your account on {platformProvider === "gitlab" ? "GitLab" : "GitHub"}.
                   </p>
                 </div>
 
@@ -1464,8 +1588,8 @@ Generated: ${new Date().toISOString()}
                       <span>
                         {connectedUser.source === "platform"
                           ? "Platform verified account active"
-                          : connectedUser.is_sandbox
-                          ? "Preview sandbox active"
+                          : connectedUser.source === "oauth"
+                          ? "OAuth verified account active"
                           : "Personal access token active"}
                       </span>
                     </div>
@@ -1653,80 +1777,55 @@ Generated: ${new Date().toISOString()}
             )}
           </div>
 
-          {/* Option 3: Quick Demo Preview */}
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#1e293b]/50 p-3.5 flex items-center justify-between">
-            <div>
-              <span className="font-semibold text-slate-900 dark:text-white flex items-center">
-                <Sparkles size={13} className="text-amber-500 mr-1.5" />
-                Preview Sandbox Evaluation
+          {/* Option 2: Personal Access Token (PAT) */}
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#1e293b]/30 p-3.5 space-y-3">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-900 dark:text-white">
+              <span className="flex items-center">
+                <KeyRound size={14} className="mr-1.5 text-slate-600 dark:text-slate-400" />
+                Personal Access Token (PAT)
               </span>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Safe offline dry-run for end-to-end evaluation without remote API calls.
-              </p>
+              <a
+                href="https://github.com/settings/tokens/new?scopes=repo,read:user&description=SkillBridge%20AI%20Portfolio%20Provisioner"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[#0071e3] hover:underline flex items-center font-normal text-[11px]"
+              >
+                Create token on GitHub
+                <ExternalLink size={11} className="ml-1" />
+              </a>
             </div>
-            <Button size="sm" variant="secondary" onClick={handleConnectDemo} className="text-xs">
-              Activate Preview
-            </Button>
-          </div>
 
-          {/* Option 4: Advanced Developer Options (Manual PAT / CI Token - Collapsible) */}
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#1e293b]/30 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setShowAdvancedPat(!showAdvancedPat)}
-              className="w-full p-3 flex items-center justify-between text-left hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors"
-            >
-              <span className="font-medium text-slate-700 dark:text-slate-300 text-xs flex items-center">
-                <KeyRound size={13} className="mr-1.5 text-slate-500" />
-                Advanced Developer Options (Manual Token / Enterprise)
-              </span>
-              {showAdvancedPat ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
-            </button>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Provide a genuine token with <strong className="font-mono text-slate-700 dark:text-slate-300">repo</strong> scope to provision verifiable repositories on your GitHub account.
+            </p>
 
-            {showAdvancedPat && (
-              <div className="p-3.5 pt-0 space-y-3 border-t border-slate-200/50 dark:border-slate-800/50 mt-1">
-                <div className="flex items-center justify-between text-[11px] text-slate-500">
-                  <span>Enter a personal access token with repo scope:</span>
-                  <a
-                    href="https://github.com/settings/tokens/new?scopes=repo,read:user&description=SkillBridge%20AI%20Portfolio%20Provisioner"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[#0071e3] hover:underline flex items-center"
-                  >
-                    Generate on GitHub
-                    <ExternalLink size={11} className="ml-1" />
-                  </a>
-                </div>
-
-                <div className="space-y-2">
-                  <input
-                    type="password"
-                    value={tokenInput}
-                    onChange={(e) => setTokenInput(e.target.value)}
-                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxx or github_pat_xxxx"
-                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#0f172a] px-3 py-2 text-xs font-mono text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:border-[#0071e3] focus:outline-none"
-                  />
-                  {tokenError && (
-                    <p className="text-[11px] text-rose-500 font-medium">{tokenError}</p>
-                  )}
-                  <Button
-                    size="sm"
-                    className="w-full text-xs"
-                    onClick={handleValidateToken}
-                    disabled={tokenValidating || !tokenInput.trim()}
-                  >
-                    {tokenValidating ? (
-                      <>
-                        <Loader2 size={13} className="animate-spin mr-1.5" />
-                        Validating credentials...
-                      </>
-                    ) : (
-                      "Verify and connect custom PAT"
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
+            <div className="space-y-2">
+              <input
+                type="password"
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx or github_pat_xxxx"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#0f172a] px-3 py-2 text-xs font-mono text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:border-[#0071e3] focus:outline-none"
+              />
+              {tokenError && (
+                <p className="text-[11px] text-rose-500 font-medium">{tokenError}</p>
+              )}
+              <Button
+                size="sm"
+                className="w-full text-xs"
+                onClick={handleValidateToken}
+                disabled={tokenValidating || !tokenInput.trim()}
+              >
+                {tokenValidating ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin mr-1.5" />
+                    Validating credentials...
+                  </>
+                ) : (
+                  "Verify and connect GitHub account"
+                )}
+              </Button>
+            </div>
           </div>
 
           <div className="flex justify-end pt-1">
@@ -1741,9 +1840,19 @@ Generated: ${new Date().toISOString()}
       <PortfolioCardModal
         isOpen={portfolioCardOpen}
         onClose={() => setPortfolioCardOpen(false)}
-        username={connectedUser?.login || analysis?.contacts?.name || "G-Narendra"}
+        username={connectedUser?.login || analysis?.contacts?.name || "technical-candidate"}
         targetRole={targetRole}
-        apiBaseUrl={API_BASE_URL}
+        apiBaseUrl={apiBaseUrl}
+      />
+
+      {/* Backend API Connectivity Manager Modal */}
+      <ApiSettingsModal
+        isOpen={apiSettingsOpen}
+        onClose={() => setApiSettingsOpen(false)}
+        activeUrl={apiBaseUrl}
+        onSaveUrl={handleSaveApiUrl}
+        backendHealth={backendHealth}
+        onRefreshHealth={() => checkBackendHealth(apiBaseUrl)}
       />
     </main>
   );

@@ -30,16 +30,10 @@ def validate_github_token(token: str) -> Dict[str, Any]:
     Returns authenticated user profile and token scopes.
     """
     clean_token = token.strip()
-    if clean_token.lower() in ["demo", "sandbox"]:
+    if clean_token.lower() in ["demo", "sandbox", "mock", "test"]:
         return {
-            "valid": True,
-            "login": "developer-preview",
-            "name": "Verified Developer",
-            "avatar_url": "https://avatars.githubusercontent.com/u/583231?v=4",
-            "html_url": "https://github.com",
-            "public_repos": 14,
-            "scopes": ["repo", "read:user"],
-            "is_sandbox": True
+            "valid": False,
+            "error": "Preview accounts are disabled. Please enter a genuine GitHub Personal Access Token with 'repo' scope."
         }
 
     # Resolve environment token if requested
@@ -50,10 +44,13 @@ def validate_github_token(token: str) -> Dict[str, Any]:
 
     try:
         headers = {
-            "Authorization": f"Bearer {clean_token}",
+            "Authorization": f"token {clean_token}",
             "Accept": "application/vnd.github.v3+json"
         }
         resp = requests.get("https://api.github.com/user", headers=headers, timeout=10)
+        if resp.status_code == 401:
+            headers["Authorization"] = f"Bearer {clean_token}"
+            resp = requests.get("https://api.github.com/user", headers=headers, timeout=10)
         if resp.status_code == 200:
             data = resp.json()
             scopes = [s.strip() for s in resp.headers.get("x-oauth-scopes", "").split(",") if s.strip()]
@@ -278,15 +275,18 @@ def provision_repository_github(
     Provisions a live GitHub repository, commits architecture scaffold files,
     and generates four sequential milestone issues.
     """
-    if token and token.lower() in ["sandbox", "demo", "mock"]:
-        return provision_sandbox_mode(project_title, tech_stack, roadmap, "github", starter_files)
-
     clean_token = token.strip() if token else ""
+    if clean_token.lower() in ["sandbox", "demo", "mock"]:
+        raise ValueError("Sandbox dry-run is disabled. Please provide a genuine GitHub Personal Access Token to provision this repository.")
+
     if not clean_token or clean_token.lower() in ["default", "env", "system"]:
         clean_token = os.getenv("GITHUB_TOKEN", "").strip()
 
-    if not clean_token or Github is None:
-        return provision_sandbox_mode(project_title, tech_stack, roadmap, "github", starter_files)
+    if not clean_token:
+        raise ValueError("No GitHub token provided. Please connect your GitHub account or supply a Personal Access Token with 'repo' scope.")
+
+    if Github is None:
+        raise RuntimeError("PyGithub library is not installed on the backend server.")
 
     auth = Auth.Token(clean_token)
     g = Github(auth=auth)
@@ -451,7 +451,7 @@ def provision_repository_gitlab(
     and generates four sequential milestone issues.
     """
     if not token or token.lower() in ["sandbox", "demo", "mock"]:
-        return provision_sandbox_mode(project_title, tech_stack, roadmap, "gitlab")
+        raise ValueError("A valid GitLab Personal Access Token with 'api' scope is required to provision this repository.")
 
     clean_token = token.strip()
     headers = {"PRIVATE-TOKEN": clean_token}

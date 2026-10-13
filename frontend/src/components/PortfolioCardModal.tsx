@@ -89,7 +89,7 @@ export function PortfolioCardModal({
 
     try {
       const response = await axios.get<PortfolioCardData>(
-        `${apiBaseUrl}/api/portfolio/card/${encodeURIComponent(username || "G-Narendra")}`,
+        `${apiBaseUrl}/api/portfolio/card/${encodeURIComponent(username)}`,
         {
           params: { role: targetRole },
           timeout: 10000
@@ -98,47 +98,7 @@ export function PortfolioCardModal({
       setData(response.data);
       setStatus("success");
     } catch {
-      // Offline / Cold-start fallback: synthesize verified portfolio card directly
-      const candidateName = username || "developer-candidate";
-      const fallbackCard: PortfolioCardData = {
-        candidate_username: candidateName,
-        display_name: candidateName.replace(/-/g, " "),
-        target_role: targetRole,
-        compatibility_score: 82,
-        competency_deficit_delta: 18.0,
-        verified_competencies_count: 8,
-        ast_modularity_grade: "A+",
-        overall_test_pass_rate: 100.0,
-        repositories: [
-          {
-            repo_name: `workflow-engine-${targetRole.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-            owner: candidateName,
-            commits_count: 6,
-            last_commit_timestamp: new Date().toISOString(),
-            ast_metrics: {
-              modularity_score: 94.5,
-              cyclomatic_density: 0.18,
-              cohesion_factor: 0.88,
-              layer_separation_grade: "A+"
-            },
-            ci_metrics: {
-              workflow_name: "CI Pipeline",
-              status: "completed",
-              conclusion: "success",
-              pass_rate_percentage: 100.0,
-              total_tests: 16,
-              passed_tests: 16,
-              execution_duration_sec: 42
-            },
-            verifiable_badge_status: "verified"
-          }
-        ],
-        executive_summary_15s: `Candidate ${candidateName} demonstrates verified engineering competence for ${targetRole} with 82% benchmark compatibility and a measured deficit of 18.0%. Code architecture validates at grade A+ modularity with 100% automated CI test pass rates.`,
-        verification_hash: "a330c3d32dd96b29e71bf1d7d59104fa28c11e779a1f2bc8802951e7041a3bc4",
-        last_evaluated_iso: new Date().toISOString()
-      };
-      setData(fallbackCard);
-      setStatus("success");
+      setStatus("error");
     }
   }, [isOpen, apiBaseUrl, username, targetRole]);
 

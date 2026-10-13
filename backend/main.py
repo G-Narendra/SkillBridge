@@ -18,24 +18,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
-frontend_url = os.getenv("FRONTEND_URL", "")
-allowed_origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:8080",
-    "http://127.0.0.1:8080",
-    "https://skillbridge-platfrom-prop.vercel.app",
-]
-if frontend_url and frontend_url.rstrip("/") not in allowed_origins:
-    allowed_origins.append(frontend_url.rstrip("/"))
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|.*\.vercel\.app|.*\.onrender\.com)(:\d+)?$",
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 class ProvisionRequest(BaseModel):
@@ -76,7 +65,8 @@ async def get_available_roles():
 @app.post("/api/resume/parse")
 async def parse_and_analyze_resume(
     file: UploadFile = File(..., description="Candidate PDF resume document"),
-    target_job: str = Form(..., description="Target job title")
+    target_job: str = Form(..., description="Target job title"),
+    job_description: Optional[str] = Form(None, description="Optional custom job requirements or description")
 ):
     """
     Extracts candidate competencies from PDF resume and benchmarks qualifications against target role.
@@ -109,7 +99,7 @@ async def parse_and_analyze_resume(
         )
 
     candidate_skills = parsed_resume["skills"]
-    gap_result = analyze_gap(candidate_skills, target_job)
+    gap_result = analyze_gap(candidate_skills, target_job, custom_job_description=job_description)
 
     session_id = str(uuid.uuid4())
 
