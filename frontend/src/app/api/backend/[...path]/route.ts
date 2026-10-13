@@ -15,9 +15,12 @@ const getTargetBackend = () => {
 const TARGET_BACKEND = getTargetBackend();
 
 async function proxyRequest(request: Request, { params }: { params: { path: string[] } }) {
-  const path = params.path ? params.path.join("/") : "";
+  const rawPath = params.path ? params.path.join("/") : "";
+  const cleanPath = rawPath.replace(/^api\/?/, "");
   const url = new URL(request.url);
-  const targetUrl = `${TARGET_BACKEND}/api/${path}${url.search}`;
+  const targetUrl = cleanPath
+    ? `${TARGET_BACKEND}/api/${cleanPath}${url.search}`
+    : `${TARGET_BACKEND}/api/health${url.search}`;
 
   const forwardHeaders = new Headers();
   request.headers.forEach((value, key) => {

@@ -63,9 +63,6 @@ function getDefaultApiUrl(): string {
   if (typeof window !== "undefined") {
     // Clear any past user-entered overrides so endpoints cannot be customized
     localStorage.removeItem("skillbridge_api_url");
-    if (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
-      return "/api/backend";
-    }
   }
   return OFFICIAL_BACKEND_URL;
 }
@@ -135,7 +132,7 @@ export default function Home() {
 
   // Check backend API operational health
   const checkBackendHealth = async (urlToCheck?: string) => {
-    const target = (urlToCheck || apiBaseUrl || "").trim().replace(/\/$/, "");
+    const target = (urlToCheck || apiBaseUrl || OFFICIAL_BACKEND_URL).trim().replace(/\/$/, "");
     setBackendHealth((prev) => ({ ...prev, status: "checking" }));
     const startTime = performance.now();
     try {
@@ -144,7 +141,7 @@ export default function Home() {
         : `${target}/health`;
 
       const res = await axios.get(endpoint, {
-        timeout: 10000
+        timeout: 15000
       });
       const elapsed = Math.round(performance.now() - startTime);
       setBackendHealth({
@@ -155,10 +152,25 @@ export default function Home() {
       });
       return true;
     } catch (err: any) {
-      // If /api/backend proxy failed, fall back to direct official cloud endpoint
-      if (target === "/api/backend") {
+      // Automatic fallback between direct cloud URL and proxy
+      if (target === OFFICIAL_BACKEND_URL) {
         try {
-          const directRes = await axios.get(`${OFFICIAL_BACKEND_URL}/api/health`, { timeout: 10000 });
+          const proxyRes = await axios.get("/api/backend/health", { timeout: 15000 });
+          const elapsed = Math.round(performance.now() - startTime);
+          setApiBaseUrl("/api/backend");
+          setBackendHealth({
+            status: "online",
+            latencyMs: elapsed,
+            rolesCount: proxyRes.data?.roles_available || 481,
+            service: proxyRes.data?.service || "SkillBridge AI Backend"
+          });
+          return true;
+        } catch {
+          // Fall through
+        }
+      } else if (target === "/api/backend") {
+        try {
+          const directRes = await axios.get(`${OFFICIAL_BACKEND_URL}/api/health`, { timeout: 15000 });
           const elapsed = Math.round(performance.now() - startTime);
           setApiBaseUrl(OFFICIAL_BACKEND_URL);
           setBackendHealth({
@@ -484,11 +496,28 @@ export default function Home() {
         headers: {
           "Content-Type": "multipart/form-data"
         },
-        timeout: 45000
+        timeout: 60000
       });
       setAnalysis(response.data);
       setStatus("success");
     } catch (err: any) {
+      // Automatic dual-route retry: If primary failed or timed out, attempt the alternate path
+      try {
+        const alternateBase = apiBaseUrl.startsWith("http")
+          ? "/api/backend"
+          : OFFICIAL_BACKEND_URL;
+        const retryRes = await axios.post(`${alternateBase}/api/resume/parse`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data"
+          },
+          timeout: 60000
+        });
+        setAnalysis(retryRes.data);
+        setStatus("success");
+        return;
+      } catch {
+        // Fall through to error
+      }
       const detail = err.response?.data?.detail || err.message || "Unable to reach the backend parsing service.";
       setErrorMessage(detail);
       setStatus("error");
@@ -1686,132 +1715,37 @@ Generated: ${new Date().toISOString()}
             </div>
           )}
 
-          {/* Option 2: Personal GitHub Authorization via Browser / Device Code (No PAT needed!) */}
+          {/* Option 2: Connect Personal GitHub Account (PAT) */}
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#1e293b]/50 p-4 space-y-3">
             <div className="flex items-start justify-between">
               <div className="flex items-start space-x-3">
                 <div className="p-2 rounded-xl bg-slate-800 text-white dark:bg-slate-700 mt-0.5">
-                  <Github size={20} />
+                  <KeyRound size={20} />
                 </div>
                 <div>
                   <h4 className="font-semibold text-slate-900 dark:text-white text-sm">
                     Connect Personal GitHub Account
                   </h4>
                   <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">
-                    Authorize via GitHub directly in your browser. No Personal Access Token creation or scope configuration required.
+                    Provide a GitHub Personal Access Token (PAT) with <strong className="font-mono text-slate-800 dark:text-slate-200">repo</strong> scope to provision verifiable repositories under your personal GitHub profile.
                   </p>
                 </div>
               </div>
             </div>
 
-            {deviceFlowState.status === "idle" && (
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-[11px] text-slate-500">
-                  Approve access in 1 click on github.com
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleStartDeviceFlow}
-                  className="text-xs"
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-500">Personal Access Token (Classic or Fine-Grained)</span>
+                <a
+                  href="https://github.com/settings/tokens/new?scopes=repo,read:user&description=SkillBridge%20AI%20Portfolio%20Provisioner"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[#0071e3] hover:underline flex items-center font-medium"
                 >
-                  <KeyRound size={13} className="mr-1.5 text-slate-700 dark:text-slate-300" />
-                  Get 1-Click Code
-                </Button>
+                  Create token on GitHub (1-Click)
+                  <ExternalLink size={11} className="ml-1" />
+                </a>
               </div>
-            )}
-
-            {deviceFlowState.status === "requesting" && (
-              <div className="flex items-center space-x-2 text-xs text-slate-600 dark:text-slate-400 py-1">
-                <Loader2 size={14} className="animate-spin text-[#0071e3]" />
-                <span>Requesting authorization code from GitHub...</span>
-              </div>
-            )}
-
-            {(deviceFlowState.status === "ready" || deviceFlowState.status === "polling") && deviceFlowState.userCode && (
-              <div className="rounded-xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/80 dark:bg-blue-950/30 p-3 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">
-                    1. Enter this code on GitHub:
-                  </span>
-                  <div className="flex items-center space-x-1.5 bg-white dark:bg-[#0f172a] px-3 py-1 rounded-lg border border-blue-300 dark:border-blue-800">
-                    <span className="font-mono font-bold text-sm text-[#0071e3] tracking-widest">
-                      {deviceFlowState.userCode}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyCode(deviceFlowState.userCode!)}
-                      className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                      title="Copy code"
-                    >
-                      {copiedCode ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <div className="flex items-center space-x-1.5 text-[11px] text-slate-500 dark:text-slate-400">
-                    <Loader2 size={12} className="animate-spin text-[#0071e3]" />
-                    <span>Waiting for your authorization...</span>
-                  </div>
-
-                  <a
-                    href={deviceFlowState.verificationUri || "https://github.com/login/device"}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center space-x-1.5 rounded-lg bg-[#0071e3] text-white px-3 py-1.5 text-xs font-medium hover:bg-blue-600 transition-colors shadow-sm"
-                  >
-                    <span>Authorize on GitHub</span>
-                    <ExternalLink size={12} />
-                  </a>
-                </div>
-              </div>
-            )}
-
-            {deviceFlowState.status === "success" && (
-              <div className="rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 p-2.5 text-xs text-emerald-700 dark:text-emerald-300 flex items-center space-x-2">
-                <CheckCircle2 size={16} className="text-emerald-500" />
-                <span>Authorized successfully! Connecting your GitHub account...</span>
-              </div>
-            )}
-
-            {deviceFlowState.status === "error" && (
-              <div className="rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 p-2.5 text-xs text-rose-600 dark:text-rose-400 flex items-center justify-between">
-                <span>{deviceFlowState.error || "Authorization error"}</span>
-                <button
-                  type="button"
-                  onClick={() => setDeviceFlowState({ status: "idle" })}
-                  className="text-xs underline text-rose-700 dark:text-rose-300 ml-2"
-                >
-                  Retry
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Option 2: Personal Access Token (PAT) */}
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#1e293b]/30 p-3.5 space-y-3">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-900 dark:text-white">
-              <span className="flex items-center">
-                <KeyRound size={14} className="mr-1.5 text-slate-600 dark:text-slate-400" />
-                Personal Access Token (PAT)
-              </span>
-              <a
-                href="https://github.com/settings/tokens/new?scopes=repo,read:user&description=SkillBridge%20AI%20Portfolio%20Provisioner"
-                target="_blank"
-                rel="noreferrer"
-                className="text-[#0071e3] hover:underline flex items-center font-normal text-[11px]"
-              >
-                Create token on GitHub
-                <ExternalLink size={11} className="ml-1" />
-              </a>
-            </div>
-
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Provide a genuine token with <strong className="font-mono text-slate-700 dark:text-slate-300">repo</strong> scope to provision verifiable repositories on your GitHub account.
-            </p>
-
-            <div className="space-y-2">
               <input
                 type="password"
                 value={tokenInput}
@@ -1831,10 +1765,13 @@ Generated: ${new Date().toISOString()}
                 {tokenValidating ? (
                   <>
                     <Loader2 size={13} className="animate-spin mr-1.5" />
-                    Validating credentials...
+                    Validating credentials with GitHub...
                   </>
                 ) : (
-                  "Verify and connect GitHub account"
+                  <>
+                    <ShieldCheck size={13} className="mr-1.5" />
+                    Verify and connect personal GitHub account
+                  </>
                 )}
               </Button>
             </div>

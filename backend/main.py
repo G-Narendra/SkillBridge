@@ -35,6 +35,20 @@ class ProvisionRequest(BaseModel):
     token: Optional[str] = Field(default="default", description="Developer platform personal access token, 'default' for system token, or 'sandbox'")
     provider: Optional[str] = Field(default="github", description="Target platform: github or gitlab")
 
+@app.get("/")
+async def root_status():
+    """
+    SkillBridge AI Backend root endpoint.
+    """
+    return {
+        "status": "healthy",
+        "service": "SkillBridge AI Backend",
+        "health": "/api/health",
+        "docs": "/docs",
+        "roles_available": len(ROLE_PROFILES),
+        "version": "1.0.0"
+    }
+
 @app.get("/health")
 @app.get("/api/health")
 async def health_check():
