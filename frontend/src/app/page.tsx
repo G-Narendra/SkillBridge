@@ -45,25 +45,27 @@ import { MultiRoleBenchmark } from "@/components/MultiRoleBenchmark";
 import { ResumeAuditCard } from "@/components/ResumeAuditCard";
 import { PortfolioCardModal } from "@/components/PortfolioCardModal";
 import { ALL_TECH_ROLES } from "@/lib/roles";
-import { ApiSettingsModal } from "@/components/ApiSettingsModal";
 
 const STANDARD_ROLES = ALL_TECH_ROLES;
+const OFFICIAL_BACKEND_URL = (
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://skillbridge-backend-1pm3.onrender.com"
+).replace(/\/$/, "");
 
 function getDefaultApiUrl(): string {
   if (typeof window !== "undefined") {
-    const custom = localStorage.getItem("skillbridge_api_url");
-    if (custom && custom.trim()) return custom.trim().replace(/\/$/, "");
+    // Clear any past user-entered overrides so endpoints cannot be customized
+    localStorage.removeItem("skillbridge_api_url");
     if (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
       return "/api/backend";
     }
   }
-  return (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080").replace(/\/$/, "");
+  return OFFICIAL_BACKEND_URL;
 }
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [apiBaseUrl, setApiBaseUrl] = useState<string>(getDefaultApiUrl);
-  const [apiSettingsOpen, setApiSettingsOpen] = useState(false);
   const [backendHealth, setBackendHealth] = useState<{
     status: "online" | "offline" | "checking";
     latencyMs?: number;
@@ -135,35 +137,40 @@ export default function Home() {
         : `${target}/health`;
 
       const res = await axios.get(endpoint, {
-        headers: target.startsWith("http")
-          ? { "x-backend-url": target }
-          : undefined,
         timeout: 10000
       });
       const elapsed = Math.round(performance.now() - startTime);
       setBackendHealth({
         status: "online",
         latencyMs: elapsed,
-        rolesCount: res.data?.roles_available || 465,
+        rolesCount: res.data?.roles_available || 481,
         service: res.data?.service || "SkillBridge AI Backend"
       });
       return true;
     } catch (err: any) {
+      // If /api/backend proxy failed, fall back to direct official cloud endpoint
+      if (target === "/api/backend") {
+        try {
+          const directRes = await axios.get(`${OFFICIAL_BACKEND_URL}/api/health`, { timeout: 10000 });
+          const elapsed = Math.round(performance.now() - startTime);
+          setApiBaseUrl(OFFICIAL_BACKEND_URL);
+          setBackendHealth({
+            status: "online",
+            latencyMs: elapsed,
+            rolesCount: directRes.data?.roles_available || 481,
+            service: directRes.data?.service || "SkillBridge AI Backend"
+          });
+          return true;
+        } catch {
+          // Fall through
+        }
+      }
       setBackendHealth({
         status: "offline",
         error: err.response?.data?.detail || err.message || "Endpoint offline"
       });
       return false;
     }
-  };
-
-  const handleSaveApiUrl = (newUrl: string) => {
-    const clean = newUrl.trim().replace(/\/$/, "");
-    setApiBaseUrl(clean);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("skillbridge_api_url", clean);
-    }
-    checkBackendHealth(clean);
   };
 
   // Query platform GitHub status, load saved PAT, and fetch 465+ dynamic roles
@@ -209,7 +216,6 @@ export default function Home() {
       // 2. Query platform GitHub status from backend
       try {
         const res = await axios.get(`${apiBaseUrl}/api/github/status`, {
-          headers: apiBaseUrl.startsWith("http") ? { "x-backend-url": apiBaseUrl } : undefined,
           timeout: 6000
         });
         if (res.data?.configured && res.data?.valid && isMounted) {
@@ -231,7 +237,6 @@ export default function Home() {
       // 3. Load dynamic technology roles catalog
       try {
         const rolesRes = await axios.get(`${apiBaseUrl}/api/roles`, {
-          headers: apiBaseUrl.startsWith("http") ? { "x-backend-url": apiBaseUrl } : undefined,
           timeout: 6000
         });
         if (rolesRes.data?.roles && Array.isArray(rolesRes.data.roles) && isMounted) {
@@ -470,8 +475,7 @@ export default function Home() {
     try {
       const response = await axios.post(`${apiBaseUrl}/api/resume/parse`, formData, {
         headers: {
-          "Content-Type": "multipart/form-data",
-          "x-backend-url": apiBaseUrl.startsWith("http") ? apiBaseUrl : undefined
+          "Content-Type": "multipart/form-data"
         },
         timeout: 45000
       });
@@ -704,17 +708,21 @@ Generated: ${new Date().toISOString()}
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <button
-              type="button"
-              onClick={() => setApiSettingsOpen(true)}
-              className={`group flex items-center space-x-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-medium backdrop-blur-md transition-all ${
+            <div
+              className={`flex items-center space-x-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-medium backdrop-blur-md transition-all ${
                 backendHealth.status === "online"
-                  ? "border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 hover:border-emerald-500/50"
+                  ? "border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400"
                   : backendHealth.status === "checking"
                   ? "border-amber-500/30 bg-amber-50/70 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400"
-                  : "border-rose-500/30 bg-rose-50/70 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 hover:border-rose-500/50"
+                  : "border-rose-500/30 bg-rose-50/70 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400"
               }`}
-              title={`Active API: ${apiBaseUrl} (Click to test or configure)`}
+              title={
+                backendHealth.status === "online"
+                  ? `SkillBridge Cloud API Active (${backendHealth.latencyMs ? `${backendHealth.latencyMs}ms` : "Operational"})`
+                  : backendHealth.status === "checking"
+                  ? "Connecting to SkillBridge Cloud API..."
+                  : "SkillBridge Cloud API Offline"
+              }
             >
               <span
                 className={`h-2 w-2 rounded-full ${
@@ -727,13 +735,13 @@ Generated: ${new Date().toISOString()}
               />
               <span className="hidden sm:inline">
                 {backendHealth.status === "online"
-                  ? `API Online (${backendHealth.latencyMs ? `${backendHealth.latencyMs}ms` : "Active"})`
+                  ? `Cloud API Online (${backendHealth.latencyMs ? `${backendHealth.latencyMs}ms` : "Active"})`
                   : backendHealth.status === "checking"
-                  ? "Checking API..."
-                  : "API Offline"}
+                  ? "Connecting API..."
+                  : "Cloud API Offline"}
               </span>
               <span className="sm:hidden font-mono text-[10px]">API</span>
-            </button>
+            </div>
 
             <ThemeToggle />
 
@@ -956,9 +964,6 @@ Generated: ${new Date().toISOString()}
                   <div className="flex items-center space-x-3">
                     <Button variant="secondary" size="sm" onClick={() => executeAnalysis()}>
                       Retry analysis
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => setApiSettingsOpen(true)}>
-                      Configure API endpoint
                     </Button>
                   </div>
                 </CardContent>
@@ -1843,16 +1848,6 @@ Generated: ${new Date().toISOString()}
         username={connectedUser?.login || analysis?.contacts?.name || "technical-candidate"}
         targetRole={targetRole}
         apiBaseUrl={apiBaseUrl}
-      />
-
-      {/* Backend API Connectivity Manager Modal */}
-      <ApiSettingsModal
-        isOpen={apiSettingsOpen}
-        onClose={() => setApiSettingsOpen(false)}
-        activeUrl={apiBaseUrl}
-        onSaveUrl={handleSaveApiUrl}
-        backendHealth={backendHealth}
-        onRefreshHealth={() => checkBackendHealth(apiBaseUrl)}
       />
     </main>
   );

@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // Universal reverse proxy to backend FastAPI service.
-// Eliminates browser CORS issues and enables seamless communication between Vercel and backend instances.
+// Eliminates browser CORS issues and connects directly to the production backend.
 const TARGET_BACKEND = (
   process.env.BACKEND_API_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://127.0.0.1:8080"
+  "https://skillbridge-backend-1pm3.onrender.com"
 ).replace(/\/$/, "");
 
 async function proxyRequest(request: Request, { params }: { params: { path: string[] } }) {
   const path = params.path ? params.path.join("/") : "";
   const url = new URL(request.url);
-  const targetBase = (request.headers.get("x-backend-url") || TARGET_BACKEND).replace(/\/$/, "");
-  const targetUrl = `${targetBase}/api/${path}${url.search}`;
+  const targetUrl = `${TARGET_BACKEND}/api/${path}${url.search}`;
 
   const forwardHeaders = new Headers();
   request.headers.forEach((value, key) => {

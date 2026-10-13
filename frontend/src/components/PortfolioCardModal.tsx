@@ -75,7 +75,7 @@ export function PortfolioCardModal({
   onClose,
   username,
   targetRole,
-  apiBaseUrl = "http://127.0.0.1:8080"
+  apiBaseUrl = "https://skillbridge-backend-1pm3.onrender.com"
 }: PortfolioCardModalProps) {
   const [data, setData] = useState<PortfolioCardData | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
