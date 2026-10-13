@@ -572,47 +572,68 @@ export default function Home() {
       result: null
     });
 
+    let timer1: any = null;
+    let timer2: any = null;
+
     try {
-      setTimeout(() => {
-        setProvisioningState((prev) => ({
-          ...prev,
-          step: 2,
-          message: "Creating remote repository and verifying branch permissions..."
-        }));
-      }, 800);
+      timer1 = setTimeout(() => {
+        setProvisioningState((prev) => {
+          if (prev.status !== "running") return prev;
+          return {
+            ...prev,
+            step: 2,
+            message: "Creating remote repository and verifying branch permissions..."
+          };
+        });
+      }, 1000);
 
-      setTimeout(() => {
-        setProvisioningState((prev) => ({
-          ...prev,
-          step: 3,
-          message: "Synthesizing atomic Git tree commit and multi-file architecture..."
-        }));
-      }, 2000);
+      timer2 = setTimeout(() => {
+        setProvisioningState((prev) => {
+          if (prev.status !== "running") return prev;
+          return {
+            ...prev,
+            step: 3,
+            message: "Synthesizing atomic Git tree commit and multi-file architecture..."
+          };
+        });
+      }, 2500);
 
-      const response = await axios.post(
-        `${apiBaseUrl}/api/provision`,
-        {
-          title: selectedBlueprint.title,
-          tech_stack: selectedBlueprint.tech_stack,
-          roadmap: selectedBlueprint.roadmap,
-          starter_files: selectedBlueprint.starter_files,
-          token: tokenToSend,
-          provider: platformProvider
-        },
-        {
-          headers: apiBaseUrl.startsWith("http")
-            ? { "x-backend-url": apiBaseUrl }
-            : undefined,
+      const payload = {
+        title: selectedBlueprint.title,
+        tech_stack: selectedBlueprint.tech_stack,
+        roadmap: selectedBlueprint.roadmap,
+        starter_files: selectedBlueprint.starter_files,
+        token: tokenToSend,
+        provider: platformProvider
+      };
+
+      let provisionData: any = null;
+      try {
+        const response = await axios.post(`${apiBaseUrl}/api/provision`, payload, {
           timeout: 120000
-        }
-      );
+        });
+        provisionData = response.data;
+      } catch (primaryErr: any) {
+        // Automatic dual-route retry: If primary route fails, try alternate path
+        const alternateBase = apiBaseUrl.startsWith("http")
+          ? "/api/backend"
+          : OFFICIAL_BACKEND_URL;
+        const retryRes = await axios.post(`${alternateBase}/api/provision`, payload, {
+          timeout: 120000
+        });
+        provisionData = retryRes.data;
+      }
 
-      setProvisioningState({
-        status: "success",
-        step: 4,
-        message: "Repository successfully provisioned and milestone issues populated on GitHub.",
-        result: response.data
-      });
+      if (provisionData && (provisionData.status === "success" || provisionData.repo_url)) {
+        setProvisioningState({
+          status: "success",
+          step: 4,
+          message: "Repository successfully provisioned and milestone issues populated on GitHub.",
+          result: provisionData
+        });
+      } else {
+        throw new Error(provisionData?.error || "Remote platform did not return repository details.");
+      }
     } catch (err: any) {
       const errorMsg =
         err.response?.data?.detail ||
@@ -626,6 +647,9 @@ export default function Home() {
         message: `Provisioning failed: ${errorMsg}`,
         result: null
       });
+    } finally {
+      if (timer1) clearTimeout(timer1);
+      if (timer2) clearTimeout(timer2);
     }
   };
 
@@ -1370,14 +1394,8 @@ Generated: ${new Date().toISOString()}
               </p>
             </div>
 
-            {provisioningState.status === "idle" || provisioningState.status === "error" ? (
+            {provisioningState.status === "idle" ? (
               <div className="space-y-4">
-                {provisioningState.status === "error" && (
-                  <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-300 flex items-start space-x-2">
-                    <AlertCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />
-                    <span>{provisioningState.message}</span>
-                  </div>
-                )}
 
                 {/* Platform Selector */}
                 <div className="space-y-2">
@@ -1491,7 +1509,39 @@ Generated: ${new Date().toISOString()}
                 </div>
                 <ProgressBar value={provisioningState.step} max={4} indicatorClassName="bg-[#0071e3]" />
               </div>
-            ) : (
+            ) : provisioningState.status === "error" ? (
+              <div className="space-y-4 py-2">
+                <div className="rounded-2xl border border-rose-500/20 bg-rose-50 dark:bg-rose-500/10 p-4">
+                  <div className="flex items-center space-x-2 text-rose-700 dark:text-rose-400 mb-1">
+                    <AlertCircle size={18} />
+                    <h4 className="text-sm font-semibold">Provisioning could not proceed</h4>
+                  </div>
+                  <p className="text-xs text-rose-600 dark:text-rose-300 leading-relaxed">
+                    {provisioningState.message}
+                  </p>
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setProvisioningState({
+                        status: "idle",
+                        step: 0,
+                        message: "Ready to initialize repository.",
+                        result: null
+                      });
+                    }}
+                  >
+                    Adjust settings
+                  </Button>
+                  <Button size="sm" onClick={executeProvisioning}>
+                    Retry provisioning
+                  </Button>
+                </div>
+              </div>
+            ) : provisioningState.status === "success" ? (
               <div className="space-y-5 py-2">
                 <div className="rounded-2xl border border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10 p-4">
                   <div className="flex items-center space-x-2 text-emerald-700 dark:text-emerald-400 mb-1">
@@ -1506,24 +1556,32 @@ Generated: ${new Date().toISOString()}
                 <div className="space-y-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1e293b]/60 p-4 text-xs font-mono">
                   <div className="flex justify-between">
                     <span className="text-slate-500">Repository:</span>
-                    <a
-                      href={provisioningState.result?.repo_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[#0071e3] hover:underline flex items-center"
-                    >
-                      {provisioningState.result?.repo_name}
-                      <ExternalLink size={12} className="ml-1" />
-                    </a>
+                    {provisioningState.result?.repo_url ? (
+                      <a
+                        href={provisioningState.result.repo_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[#0071e3] hover:underline flex items-center font-medium"
+                      >
+                        {provisioningState.result.repo_name || "View on GitHub"}
+                        <ExternalLink size={12} className="ml-1" />
+                      </a>
+                    ) : (
+                      <span className="text-slate-700 dark:text-slate-300 font-medium">
+                        {provisioningState.result?.repo_name || "Created"}
+                      </span>
+                    )}
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Initial commit:</span>
-                    <span className="text-slate-800 dark:text-slate-200">{provisioningState.result?.commit_hash}</span>
+                    <span className="text-slate-800 dark:text-slate-200">
+                      {provisioningState.result?.commit_hash || "main"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Milestone issues:</span>
                     <span className="text-emerald-600 dark:text-emerald-400">
-                      {provisioningState.result?.issues_created?.length || 4} created
+                      {provisioningState.result?.issues_created?.length || provisioningState.result?.issues_count || 4} created
                     </span>
                   </div>
                 </div>
@@ -1541,14 +1599,19 @@ Generated: ${new Date().toISOString()}
                   </Button>
                   <Button
                     size="sm"
-                    onClick={() => window.open(provisioningState.result?.repo_url, "_blank")}
+                    disabled={!provisioningState.result?.repo_url}
+                    onClick={() => {
+                      if (provisioningState.result?.repo_url) {
+                        window.open(provisioningState.result.repo_url, "_blank");
+                      }
+                    }}
                   >
                     <ExternalLink size={14} className="mr-1.5" />
                     Open repository
                   </Button>
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
         )}
       </Modal>
