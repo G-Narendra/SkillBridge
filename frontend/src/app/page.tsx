@@ -744,41 +744,6 @@ Generated: ${new Date().toISOString()}
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <div
-              className={`flex items-center space-x-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-medium backdrop-blur-md transition-all ${
-                backendHealth.status === "online"
-                  ? "border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400"
-                  : backendHealth.status === "checking"
-                  ? "border-amber-500/30 bg-amber-50/70 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400"
-                  : "border-rose-500/30 bg-rose-50/70 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400"
-              }`}
-              title={
-                backendHealth.status === "online"
-                  ? `SkillBridge Cloud API Active (${backendHealth.latencyMs ? `${backendHealth.latencyMs}ms` : "Operational"})`
-                  : backendHealth.status === "checking"
-                  ? "Connecting to SkillBridge Cloud API..."
-                  : "SkillBridge Cloud API Offline"
-              }
-            >
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  backendHealth.status === "online"
-                    ? "bg-emerald-500 animate-pulse"
-                    : backendHealth.status === "checking"
-                    ? "bg-amber-500"
-                    : "bg-rose-500"
-                }`}
-              />
-              <span className="hidden sm:inline">
-                {backendHealth.status === "online"
-                  ? `Cloud API Online (${backendHealth.latencyMs ? `${backendHealth.latencyMs}ms` : "Active"})`
-                  : backendHealth.status === "checking"
-                  ? "Connecting API..."
-                  : "Cloud API Offline"}
-              </span>
-              <span className="sm:hidden font-mono text-[10px]">API</span>
-            </div>
-
             <ThemeToggle />
 
             <ConnectedAccountBar
