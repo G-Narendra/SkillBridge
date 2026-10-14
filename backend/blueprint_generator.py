@@ -2209,6 +2209,7 @@ def generate_production_blueprint_files(title: str, tech_stack: List[str], roadm
     """
     Selects and builds the appropriate production-grade starter codebase files for any blueprint.
     Uses precise priority routing based on the specific project title and technologies first.
+    Guarantees Kaggle dataset downloaders, notebooks, and submission pipelines for all Data Science & ML tracks.
     """
     title_lower = title.lower()
     stack_lower = [t.lower() for t in tech_stack]
@@ -2216,27 +2217,100 @@ def generate_production_blueprint_files(title: str, tech_stack: List[str], roadm
 
     # Route 1: Pandas, NumPy, or Tabular Data Analytics Service (Always prior to generic role checks!)
     if "pandas" in title_lower or "pandas" in stack_lower or "numpy" in stack_lower or "analytics with pandas" in title_lower:
-        return generate_pandas_analytics_service_files(title, tech_stack, roadmap)
-
+        files = generate_pandas_analytics_service_files(title, tech_stack, roadmap)
     # Route 2: Workflow, Deployment, Docker, DevOps Engine
-    if "workflow" in title_lower or "deployment" in title_lower or ("docker" in title_lower and "engine" in title_lower):
-        return generate_docker_workflow_engine_files(title, tech_stack, roadmap)
-
+    elif "workflow" in title_lower or "deployment" in title_lower or ("docker" in title_lower and "engine" in title_lower):
+        files = generate_docker_workflow_engine_files(title, tech_stack, roadmap)
     # Route 3: Data Pipeline, SQL ETL, Database analytics
-    if "pipeline" in title_lower or "sql" in title_lower or "etl" in title_lower:
+    elif "pipeline" in title_lower or "sql" in title_lower or "etl" in title_lower:
         db = next((t for t in tech_stack if t.lower() in ["postgresql", "snowflake", "bigquery", "redis", "mongodb"]), "PostgreSQL")
-        return generate_data_pipeline_files(title, tech_stack, roadmap, primary_db=db)
-
+        files = generate_data_pipeline_files(title, tech_stack, roadmap, primary_db=db)
     # Route 4: Agent / AI / LLM workflows (Only if project title explicitly centers on agents/llm)
-    if "agent" in title_lower or "react" in title_lower or "llm" in title_lower:
-        return generate_ai_agent_platform_files(title, tech_stack, roadmap)
-
+    elif "agent" in title_lower or "react" in title_lower or "llm" in title_lower:
+        files = generate_ai_agent_platform_files(title, tech_stack, roadmap)
     # Route 5: Role-based fallback
-    if "agent" in role_lower:
-        return generate_ai_agent_platform_files(title, tech_stack, roadmap)
-
-    if any(db in stack_lower for db in ["postgresql", "snowflake", "bigquery", "duckdb"]):
+    elif "agent" in role_lower:
+        files = generate_ai_agent_platform_files(title, tech_stack, roadmap)
+    elif any(db in stack_lower for db in ["postgresql", "snowflake", "bigquery", "duckdb"]):
         db = next((t for t in tech_stack if t.lower() in ["postgresql", "snowflake", "bigquery", "redis", "mongodb"]), "PostgreSQL")
-        return generate_data_pipeline_files(title, tech_stack, roadmap, primary_db=db)
+        files = generate_data_pipeline_files(title, tech_stack, roadmap, primary_db=db)
+    else:
+        files = generate_docker_workflow_engine_files(title, tech_stack, roadmap)
 
-    return generate_docker_workflow_engine_files(title, tech_stack, roadmap)
+    # Invariant: If target role or project is an ML / Data Science / Analytics track, guarantee Kaggle workflows
+    is_ds_track = any(
+        k in role_lower or k in title_lower or any(k in t for t in stack_lower)
+        for k in ["ml", "machine learning", "data scientist", "data analyst", "kaggle", "deep learning", "pytorch", "pandas"]
+    )
+    if is_ds_track:
+        slug = title.lower().replace(" ", "-")
+        if "data/download_dataset.sh" not in files:
+            files["data/download_dataset.sh"] = f"""#!/usr/bin/env bash
+# SkillBridge Kaggle Dataset Ingestion Automation
+# Usage: ./data/download_dataset.sh <competition-or-dataset-slug>
+
+set -euo pipefail
+
+COMPETITION_SLUG="${{1:-'{slug}-benchmark'}}"
+DEST_DIR="$(cd "$(dirname "${{BASH_SOURCE[0]}}")" && pwd)"
+
+echo "==> Fetching Kaggle competition dataset: ${{COMPETITION_SLUG}}..."
+kaggle competitions download -c "${{COMPETITION_SLUG}}" -p "${{DEST_DIR}}" || kaggle datasets download -d "${{COMPETITION_SLUG}}" -p "${{DEST_DIR}}"
+
+echo "==> Uncompressing raw competition telemetry archives..."
+unzip -o "${{DEST_DIR}}/*.zip" -d "${{DEST_DIR}}" || true
+echo "==> Dataset successfully ingested and ready for exploratory analysis."
+"""
+        if "notebooks/01_eda_baseline.ipynb" not in files:
+            files["notebooks/01_eda_baseline.ipynb"] = f"""{{
+ "cells": [
+  {{
+   "cell_type": "markdown",
+   "metadata": {{}},
+   "source": [
+    "# {title} — Exploratory Data Analysis & Baseline Model\\n",
+    "### Mentored by Prof. Siddhaling Urolagin | SkillBridge AI Platform\\n",
+    "\\n",
+    "This notebook establishes the baseline feature pipeline, data distributions, and initial benchmark metrics."
+   ]
+  }},
+  {{
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {{}},
+   "outputs": [],
+   "source": [
+    "import pandas as pd\\n",
+    "import numpy as np\\n",
+    "import json\\n",
+    "from pathlib import Path\\n",
+    "\\n",
+    "data_path = Path('../data')\\n",
+    "print('SkillBridge Kaggle ML Track Workspace Initialized')\\n",
+    "# TODO(student): Load competition CSV files and inspect statistical distributions"
+   ]
+  }}
+ ],
+ "metadata": {{
+  "language_info": {{
+   "name": "python"
+  }}
+ }},
+ "nbformat": 4,
+ "nbformat_minor": 2
+}}"""
+        if "submissions/submit_predictions.sh" not in files:
+            files["submissions/submit_predictions.sh"] = f"""#!/usr/bin/env bash
+# SkillBridge Kaggle CLI Automated Submission Pipeline
+set -euo pipefail
+
+SUBMISSION_FILE="${{1:-submissions/submission.csv}}"
+COMPETITION_SLUG="${{2:-'{slug}-benchmark'}}"
+MESSAGE="${{3:-'SkillBridge automated TDD baseline submission'}}"
+
+echo "==> Submitting predictions to Kaggle: ${{COMPETITION_SLUG}}..."
+kaggle competitions submit -c "${{COMPETITION_SLUG}}" -f "${{SUBMISSION_FILE}}" -m "${{MESSAGE}}"
+echo "==> Submission uploaded successfully. Check competition leaderboard."
+"""
+
+    return files

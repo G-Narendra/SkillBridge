@@ -269,25 +269,33 @@ async def provision_repository_endpoint(request: ProvisionRequest):
         )
 
 class DownloadZipRequest(BaseModel):
-    title: str = Field(..., description="Project title")
-    starter_files: Dict[str, str] = Field(..., description="Project starter files")
+    title: Optional[str] = None
+    starter_files: Optional[Dict[str, str]] = None
+    blueprint: Optional[Dict[str, Any]] = None
 
 @app.post("/api/blueprint/download-zip")
 async def download_blueprint_zip(request: DownloadZipRequest):
     """
     Packages project skeleton files into an in-memory zip archive for direct local download.
     Provides zero-OAuth manual local setup workflow for students.
+    Supports both direct {title, starter_files} and wrapped {blueprint: {...}} payloads.
     """
-    if not request.starter_files:
+    files = request.starter_files
+    title = request.title
+    if request.blueprint:
+        files = files or request.blueprint.get("starter_files", {})
+        title = title or request.blueprint.get("title", "skillbridge-skeleton")
+
+    if not files:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Starter files dictionary cannot be empty."
         )
 
-    clean_slug = re.sub(r'[^a-zA-Z0-9_-]', '-', request.title.lower()).strip('-') or "project-skeleton"
+    clean_slug = re.sub(r'[^a-zA-Z0-9_-]', '-', (title or "project-skeleton").lower()).strip('-') or "project-skeleton"
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        for file_path, file_content in request.starter_files.items():
+        for file_path, file_content in files.items():
             normalized_path = f"{clean_slug}/{file_path.lstrip('/')}"
             zip_file.writestr(normalized_path, file_content)
 
