@@ -22,7 +22,8 @@ import {
   ChevronUp,
   Copy,
   Check,
-  CheckCircle2
+  CheckCircle2,
+  Terminal
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
@@ -44,6 +45,10 @@ import { BlueprintInspector } from "@/components/BlueprintInspector";
 import { MultiRoleBenchmark } from "@/components/MultiRoleBenchmark";
 import { ResumeAuditCard } from "@/components/ResumeAuditCard";
 import { PortfolioCardModal } from "@/components/PortfolioCardModal";
+import { BenchmarkComparisonBanner } from "@/components/BenchmarkComparisonBanner";
+import { GranularCapabilityGrid } from "@/components/GranularCapabilityGrid";
+import { GapDiagnosticTable } from "@/components/GapDiagnosticTable";
+import { ManualSetupModal } from "@/components/ManualSetupModal";
 import { ALL_TECH_ROLES } from "@/lib/roles";
 
 const STANDARD_ROLES = ALL_TECH_ROLES;
@@ -89,6 +94,8 @@ export default function Home() {
   const [selectedBlueprint, setSelectedBlueprint] = useState<any | null>(null);
   const [blueprintInspectorOpen, setBlueprintInspectorOpen] = useState(false);
   const [provisionModalOpen, setProvisionModalOpen] = useState(false);
+  const [manualSetupModalOpen, setManualSetupModalOpen] = useState(false);
+  const [manualBlueprint, setManualBlueprint] = useState<any | null>(null);
   const [portfolioCardOpen, setPortfolioCardOpen] = useState(false);
   const [showAnonymizedSnippet, setShowAnonymizedSnippet] = useState(false);
   const [activeCategoryTab, setActiveCategoryTab] = useState("all");
@@ -539,6 +546,41 @@ export default function Home() {
       message: "Ready to initialize repository.",
       result: null
     });
+  };
+
+  const handleDownloadZip = async (project: any) => {
+    try {
+      const target = (apiBaseUrl || OFFICIAL_BACKEND_URL).trim().replace(/\/$/, "");
+      const endpoint = target.startsWith("http")
+        ? `${target}/api/blueprint/download-zip`
+        : `${target}/blueprint/download-zip`;
+
+      const response = await axios.post(
+        endpoint,
+        { blueprint: project },
+        { responseType: "blob", timeout: 30000 }
+      );
+
+      const blob = new Blob([response.data], { type: "application/zip" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const slug = (project.id || project.title || "skillbridge-skeleton")
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+      link.setAttribute("download", `${slug}-skeleton.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error("Direct zip download failed:", err);
+      // Fallback: open manual setup modal
+      setManualBlueprint(project);
+      setManualSetupModalOpen(true);
+    }
   };
 
   const executeProvisioning = async () => {
@@ -1002,157 +1044,24 @@ Generated: ${new Date().toISOString()}
                   animate={{ opacity: 1, y: 0 }}
                   className="space-y-6"
                 >
-                  {/* Top Analytics Row */}
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                    {/* Score Card */}
-                    <Card className="md:col-span-4 flex flex-col justify-between">
-                      <CardHeader className="pb-2">
-                        <CardDescription>Overall compatibility</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-baseline space-x-2">
-                          <span className="text-5xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">
-                            {analysis.match_percentage}%
-                          </span>
-                          <span className="text-xs font-mono text-slate-500 dark:text-slate-400">weighted match</span>
-                        </div>
-                        <div className="mt-4">
-                          <ProgressBar
-                            value={analysis.match_percentage}
-                            indicatorClassName={
-                              analysis.match_percentage >= 70
-                                ? "bg-[#28cd41]"
-                                : analysis.match_percentage >= 40
-                                ? "bg-[#ff9f0a]"
-                                : "bg-[#ff3b30]"
-                            }
-                          />
-                        </div>
-                      </CardContent>
-                      <CardFooter className="pt-0 text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800/60">
-                        Languages: 40% • Frameworks: 30% • Databases: 20% • Tools: 10%
-                      </CardFooter>
-                    </Card>
+                  {/* Transparent Benchmark Comparison Banner */}
+                  <BenchmarkComparisonBanner
+                    role={analysis.target_role || targetRole}
+                    benchmarkStandard={analysis.benchmark_standard}
+                    overallMatch={analysis.match_percentage ?? 0}
+                    deficitDelta={analysis.competency_deficit_delta ?? 0}
+                  />
 
-                    {/* Category Breakdown Recharts Card */}
-                    <Card className="md:col-span-5">
-                      <CardHeader className="pb-1">
-                        <CardDescription>Category distribution</CardDescription>
-                      </CardHeader>
-                      <CardContent className="pt-1">
-                        <CategoryChart breakdown={analysis.category_breakdown} />
-                      </CardContent>
-                    </Card>
+                  {/* 4-Tier Granular Capability Grid (Languages, Frameworks, Databases, Tools & Infra) */}
+                  <GranularCapabilityGrid
+                    breakdown={analysis.category_breakdown || {}}
+                  />
 
-                    {/* Competency Summary Card */}
-                    <Card className="md:col-span-3 flex flex-col justify-center space-y-4">
-                      <CardContent className="space-y-3 pt-6">
-                        <div className="rounded-xl border border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-500/10 p-3">
-                          <span className="text-[11px] uppercase tracking-wider text-emerald-700 dark:text-emerald-400 font-medium block">
-                            Verified competencies
-                          </span>
-                          <span className="text-2xl font-bold font-mono tabular-nums text-emerald-700 dark:text-emerald-300">
-                            {analysis.matched_skills?.length ?? 0}
-                          </span>
-                        </div>
-                        <div className="rounded-xl border border-rose-500/20 bg-rose-50/50 dark:bg-rose-500/10 p-3">
-                          <span className="text-[11px] uppercase tracking-wider text-rose-700 dark:text-rose-400 font-medium block">
-                            Identified skill gaps
-                          </span>
-                          <span className="text-2xl font-bold font-mono tabular-nums text-rose-700 dark:text-rose-300">
-                            {analysis.missing_skills?.length ?? 0}
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Competency Gap Breakdown Card */}
-                  <Card className="w-full border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0f172a]/90 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
-                    <CardHeader className="pb-3">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div>
-                          <CardTitle className="text-sm font-bold flex items-center gap-1.5 text-slate-900 dark:text-white">
-                            <Sparkles size={16} className="text-[#0071e3]" />
-                            Competency Gap Breakdown
-                          </CardTitle>
-                          <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
-                            Weighted evaluation of candidate technical qualifications against {analysis.target_role} benchmarks
-                          </CardDescription>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <span className="text-[10px] text-slate-400 uppercase font-semibold block">Overall Match</span>
-                            <span className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                              {analysis.match_percentage}%
-                            </span>
-                          </div>
-                          <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
-                          <div className="text-right">
-                            <span className="text-[10px] text-slate-400 uppercase font-semibold block">Remaining Gap</span>
-                            <span className="text-xl font-bold font-mono text-amber-600 dark:text-amber-400">
-                              {typeof analysis.competency_deficit_delta === "number" ? analysis.competency_deficit_delta.toFixed(1) : "0.0"}%
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-1">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                        {/* Languages */}
-                        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#1e293b]/40 p-3 flex flex-col justify-between">
-                          <div>
-                            <span className="text-[10px] text-slate-500 uppercase font-semibold block">Languages (40%)</span>
-                            <span className="text-base font-mono font-bold text-slate-900 dark:text-slate-100 mt-1 block">
-                              {analysis.category_deficits?.languages !== undefined ? Number(analysis.category_deficits.languages).toFixed(1) : "0.0"}% Gap
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-2">
-                            {analysis.category_breakdown?.languages?.percentage ?? 100}% Fulfilled
-                          </span>
-                        </div>
-
-                        {/* Frameworks */}
-                        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#1e293b]/40 p-3 flex flex-col justify-between">
-                          <div>
-                            <span className="text-[10px] text-slate-500 uppercase font-semibold block">Frameworks (30%)</span>
-                            <span className="text-base font-mono font-bold text-slate-900 dark:text-slate-100 mt-1 block">
-                              {analysis.category_deficits?.frameworks !== undefined ? Number(analysis.category_deficits.frameworks).toFixed(1) : "0.0"}% Gap
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-2">
-                            {analysis.category_breakdown?.frameworks?.percentage ?? 100}% Fulfilled
-                          </span>
-                        </div>
-
-                        {/* Databases */}
-                        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#1e293b]/40 p-3 flex flex-col justify-between">
-                          <div>
-                            <span className="text-[10px] text-slate-500 uppercase font-semibold block">Databases (20%)</span>
-                            <span className="text-base font-mono font-bold text-slate-900 dark:text-slate-100 mt-1 block">
-                              {analysis.category_deficits?.databases !== undefined ? Number(analysis.category_deficits.databases).toFixed(1) : "0.0"}% Gap
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-2">
-                            {analysis.category_breakdown?.databases?.percentage ?? 100}% Fulfilled
-                          </span>
-                        </div>
-
-                        {/* Tools */}
-                        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#1e293b]/40 p-3 flex flex-col justify-between">
-                          <div>
-                            <span className="text-[10px] text-slate-500 uppercase font-semibold block">Tools (10%)</span>
-                            <span className="text-base font-mono font-bold text-slate-900 dark:text-slate-100 mt-1 block">
-                              {analysis.category_deficits?.tools !== undefined ? Number(analysis.category_deficits.tools).toFixed(1) : "0.0"}% Gap
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-2">
-                            {analysis.category_breakdown?.tools?.percentage ?? 100}% Fulfilled
-                          </span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  {/* High-Density Gap Diagnostic Matrix (Zero-Slop Engineering Table) */}
+                  <GapDiagnosticTable
+                    gaps={analysis.competency_gaps || []}
+                    targetRole={analysis.target_role || targetRole}
+                  />
 
                   {/* Diagnostic Resume Audit Card */}
                   <ResumeAuditCard
@@ -1166,67 +1075,7 @@ Generated: ${new Date().toISOString()}
                     onSelectRole={(r) => executeAnalysis(r)}
                   />
 
-                  {/* Skill Gap Matrix with Interactive Category Tabs */}
-                  <Card>
-                    <CardHeader>
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div>
-                          <CardTitle>Skill gap visualizer</CardTitle>
-                          <CardDescription>
-                            Direct comparison of candidate skills against {targetRole} requirements
-                          </CardDescription>
-                        </div>
-                        <TabGroup
-                          tabs={categoryTabs}
-                          value={activeCategoryTab}
-                          onChange={setActiveCategoryTab}
-                        />
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Verified Matches */}
-                        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/50 dark:bg-[#0f172a]/70 p-4">
-                          <div className="flex items-center space-x-2 mb-3">
-                            <CheckCircle size={16} className="text-[#28cd41]" />
-                            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                              Verified competencies ({filtered.matched.length})
-                            </h4>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {filtered.matched.map((skill: string) => (
-                              <Badge key={skill} variant="success">
-                                {skill}
-                              </Badge>
-                            ))}
-                            {filtered.matched.length === 0 && (
-                              <span className="text-xs text-slate-400">No verified skills in this category.</span>
-                            )}
-                          </div>
-                        </div>
 
-                        {/* Identified Gaps */}
-                        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/50 dark:bg-[#0f172a]/70 p-4">
-                          <div className="flex items-center space-x-2 mb-3">
-                            <XCircle size={16} className="text-[#ff3b30]" />
-                            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                              Missing requirements ({filtered.missing.length})
-                            </h4>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {filtered.missing.map((skill: string) => (
-                              <Badge key={skill} variant="destructive">
-                                {skill}
-                              </Badge>
-                            ))}
-                            {filtered.missing.length === 0 && (
-                              <span className="text-xs text-slate-400">All category requirements met.</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
 
                   {/* Project Recommendation Proposals */}
                   <div>
@@ -1278,9 +1127,25 @@ Generated: ${new Date().toISOString()}
                                 {project.difficulty}
                               </Badge>
                             </div>
-                            <CardDescription className="line-clamp-2 mt-1.5 text-xs">
+                            <CardDescription className="line-clamp-2 mt-1 text-xs">
                               {project.objective}
                             </CardDescription>
+                            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                              <Badge variant="outline" className="text-[10px] bg-blue-50/60 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/50">
+                                <FolderGit2 size={10} className="mr-1 text-blue-600" />
+                                Skeleton Scaffold
+                              </Badge>
+                              <Badge variant="outline" className="text-[10px] bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50">
+                                <CheckCircle2 size={10} className="mr-1 text-emerald-600" />
+                                TDD Test Suite
+                              </Badge>
+                              {project.is_kaggle_track && (
+                                <Badge variant="outline" className="text-[10px] bg-purple-50/60 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-900/50">
+                                  <Sparkles size={10} className="mr-1 text-purple-600" />
+                                  Kaggle ML Track
+                                </Badge>
+                              )}
+                            </div>
                           </CardHeader>
 
                           <CardContent className="space-y-3">
@@ -1323,24 +1188,51 @@ Generated: ${new Date().toISOString()}
                             </div>
                           </CardContent>
 
-                          <CardFooter className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                          <CardFooter className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                             <span className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
                               Estimated: {project.hours} hrs
                             </span>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto justify-end">
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="text-xs"
+                                className="text-xs h-7 px-2 text-slate-600 dark:text-slate-300"
                                 onClick={() => openInspector(project)}
+                                title="Inspect architecture blueprint and file contracts"
                               >
-                                Inspect blueprint
+                                <Code2 size={12} className="mr-1" />
+                                Inspect
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs h-7 px-2 text-slate-600 dark:text-slate-300"
+                                onClick={() => {
+                                  setManualBlueprint(project);
+                                  setManualSetupModalOpen(true);
+                                }}
+                                title="Manual terminal setup (Zero OAuth)"
+                              >
+                                <Terminal size={12} className="mr-1" />
+                                Manual CLI
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs h-7 px-2 text-slate-600 dark:text-slate-300"
+                                onClick={() => handleDownloadZip(project)}
+                                title="Download Skeleton ZIP archive"
+                              >
+                                <Download size={12} className="mr-1" />
+                                ZIP
                               </Button>
                               <Button
                                 size="sm"
-                                className="text-xs"
+                                className="text-xs h-7 px-2.5 bg-[#0071e3] hover:bg-[#0077ed] text-white"
                                 onClick={() => handleProceedFromInspector(project)}
+                                title="Automated repository provisioning on GitHub/GitLab"
                               >
+                                <FolderGit2 size={12} className="mr-1" />
                                 Provision
                               </Button>
                             </div>
@@ -1819,6 +1711,14 @@ Generated: ${new Date().toISOString()}
         onClose={() => setPortfolioCardOpen(false)}
         username={connectedUser?.login || analysis?.contacts?.name || "technical-candidate"}
         targetRole={targetRole}
+        apiBaseUrl={apiBaseUrl}
+      />
+
+      {/* Zero-OAuth Manual Stepwise Terminal CLI Guide Modal */}
+      <ManualSetupModal
+        isOpen={manualSetupModalOpen}
+        onClose={() => setManualSetupModalOpen(false)}
+        blueprint={manualBlueprint}
         apiBaseUrl={apiBaseUrl}
       />
     </main>

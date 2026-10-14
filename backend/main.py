@@ -1,7 +1,11 @@
 import os
+import io
+import re
+import zipfile
 import uuid
 from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request, status
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
@@ -132,6 +136,8 @@ async def parse_and_analyze_resume(
         "category_deficits": gap_result.get("category_deficits", {}),
         "euclidean_distance": gap_result.get("euclidean_distance", 0.0),
         "deficit_formula": gap_result.get("deficit_formula", "Delta = sum(w_k * max(0, d_k - s_k))"),
+        "benchmark_standard": gap_result.get("benchmark_standard", {}),
+        "competency_gaps": gap_result.get("competency_gaps", []),
         "matched_skills": gap_result["matched_skills"],
         "missing_skills": gap_result["missing_skills"],
         "category_breakdown": gap_result["category_breakdown"],
@@ -261,6 +267,39 @@ async def provision_repository_endpoint(request: ProvisionRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Repository provisioning failed: {str(e)}"
         )
+
+class DownloadZipRequest(BaseModel):
+    title: str = Field(..., description="Project title")
+    starter_files: Dict[str, str] = Field(..., description="Project starter files")
+
+@app.post("/api/blueprint/download-zip")
+async def download_blueprint_zip(request: DownloadZipRequest):
+    """
+    Packages project skeleton files into an in-memory zip archive for direct local download.
+    Provides zero-OAuth manual local setup workflow for students.
+    """
+    if not request.starter_files:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Starter files dictionary cannot be empty."
+        )
+
+    clean_slug = re.sub(r'[^a-zA-Z0-9_-]', '-', request.title.lower()).strip('-') or "project-skeleton"
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for file_path, file_content in request.starter_files.items():
+            normalized_path = f"{clean_slug}/{file_path.lstrip('/')}"
+            zip_file.writestr(normalized_path, file_content)
+
+    zip_buffer.seek(0)
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{clean_slug}-skeleton.zip"',
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+    )
 
 @app.post("/api/webhooks/github")
 async def github_webhook_endpoint(request: Request):

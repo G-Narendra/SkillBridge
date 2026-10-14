@@ -2068,6 +2068,112 @@ build/
     from blueprint_generator import generate_docker_workflow_engine_files
     logger_py = generate_docker_workflow_engine_files(title, tech_stack, roadmap)["src/utils/logger.py"]
 
+    download_dataset_sh = f"""#!/usr/bin/env bash
+# SkillBridge Kaggle Dataset Download Workflow
+set -euo pipefail
+
+echo "=========================================================="
+echo "SkillBridge: Fetching Kaggle Dataset for {title}"
+echo "=========================================================="
+
+mkdir -p data/
+
+if command -v kaggle &> /dev/null; then
+    echo "Using Kaggle CLI to fetch dataset..."
+    kaggle datasets download -d analytics/{slug}-data -p data/ --unzip || true
+else
+    echo "Kaggle CLI not configured or credentials not in ~/.kaggle/kaggle.json"
+    echo "Generating synthetic benchmark dataset for local development..."
+    python -c "
+import pandas as pd, numpy as np
+np.random.seed(42)
+df = pd.DataFrame({{
+    'transaction_id': range(1001, 1201),
+    'region': np.random.choice(['North', 'South', 'East', 'West'], 200),
+    'category': np.random.choice(['Technology', 'Healthcare', 'Finance', 'Retail'], 200),
+    'revenue': np.random.normal(5000, 1500, 200).round(2),
+    'units_sold': np.random.randint(10, 100, 200),
+    'customer_satisfaction': np.random.uniform(3.0, 5.0, 200).round(1)
+}})
+df.to_csv('data/raw_data.csv', index=False)
+print('Generated synthetic benchmark dataset in data/raw_data.csv')
+"
+fi
+echo "==> Dataset ready in data/."
+"""
+
+    eda_notebook_ipynb = """{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Exploratory Data Analysis & Baseline Model\\n",
+    "### SkillBridge Pedagogical ML & Analytics Blueprint\\n",
+    "This notebook provides the initial exploratory analysis, distribution plots, and baseline feature validation."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import pandas as pd\\n",
+    "import numpy as np\\n",
+    "# TODO(student): Load data from data/ directory\\n",
+    "df = pd.read_csv('data/raw_data.csv')\\n",
+    "print(f'Dataset shape: {df.shape}')\\n",
+    "df.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# TODO(student): Check missing values and compute summary statistics\\n",
+    "from src.engine.analytics_core import compute_dataset_summary\\n",
+    "# summary = compute_dataset_summary(df)\\n",
+    "df.describe()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# TODO(student): Implement feature correlation matrix\\n",
+    "from src.engine.analytics_core import compute_correlation_matrix\\n",
+    "# corr = compute_correlation_matrix(df)\\n"
+   ]
+  }
+ ],
+ "metadata": {
+  "language_info": {
+   "name": "python"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}"""
+
+    submit_predictions_sh = f"""#!/usr/bin/env bash
+# SkillBridge Kaggle Submission Automation Script
+set -euo pipefail
+
+if [ ! -f "submissions/final_predictions.csv" ]; then
+    echo "Error: submissions/final_predictions.csv not found!"
+    echo "Run your data processing pipeline first to generate predictions."
+    exit 1
+fi
+
+echo "Submitting final_predictions.csv to Kaggle competition..."
+kaggle competitions submit -c {slug}-competition -f submissions/final_predictions.csv -m "SkillBridge automated baseline submission"
+"""
+
     return {
         "README.md": readme,
         "src/__init__.py": "",
@@ -2086,6 +2192,9 @@ build/
         "tests/test_analytics_core.py": test_analytics_py,
         "tests/test_data_cleaner.py": test_data_cleaner_py,
         "tests/test_api.py": test_api_py,
+        "data/download_dataset.sh": download_dataset_sh,
+        "notebooks/01_eda_baseline.ipynb": eda_notebook_ipynb,
+        "submissions/submit_predictions.sh": submit_predictions_sh,
         "Dockerfile": dockerfile,
         "docker-compose.yml": docker_compose,
         "ci/ci-pipeline.yml": ci_yml,

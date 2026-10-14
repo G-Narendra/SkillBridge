@@ -63,6 +63,9 @@ def test_pandas_blueprint_routing():
     assert "tests/test_analytics_core.py" in files
     assert "tests/test_data_cleaner.py" in files
     assert "tests/test_api.py" in files
+    assert "data/download_dataset.sh" in files
+    assert "notebooks/01_eda_baseline.ipynb" in files
+    assert "submissions/submit_predictions.sh" in files
     assert "Dockerfile" in files
     assert "docker-compose.yml" in files
     assert "ci/ci-pipeline.yml" in files
