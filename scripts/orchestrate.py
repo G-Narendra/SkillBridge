@@ -35,8 +35,14 @@ BANNED_SLOP_PHRASES = [
     "bustling",
 ]
 
-def get_python_exe():
-    backend_venv = BASE_DIR / "project" / "backend" / "venv2" / "Scripts" / "python.exe"
+def get_backend_dir() -> Path:
+    if (BASE_DIR / "backend").exists():
+        return BASE_DIR / "backend"
+    return BASE_DIR / "project" / "backend"
+
+def get_python_exe() -> str:
+    b_dir = get_backend_dir()
+    backend_venv = b_dir / "venv2" / "Scripts" / "python.exe"
     if backend_venv.exists():
         return str(backend_venv)
     root_venv = BASE_DIR / "venv" / "Scripts" / "python.exe"
@@ -68,7 +74,7 @@ def init_state():
 
 def run_tests():
     print("\n--- Running Backend Pytest Test Suite ---")
-    backend_dir = BASE_DIR / "project" / "backend"
+    backend_dir = get_backend_dir()
     python_exe = get_python_exe()
     cmd = [python_exe, "-m", "pytest", "tests/", "-v"]
     res = subprocess.run(cmd, cwd=backend_dir, capture_output=True, text=True)
@@ -82,9 +88,11 @@ def audit_slop():
     print("\n--- Scanning for AI Slop & Vacuous Phrases ---")
     slop_found = []
     scan_exts = {".py", ".ts", ".tsx", ".md", ".json"}
+    backend_dir = get_backend_dir()
+    frontend_dir = BASE_DIR / "frontend" if (BASE_DIR / "frontend").exists() else BASE_DIR / "project" / "frontend"
     target_dirs = [
-        BASE_DIR / "project" / "backend",
-        BASE_DIR / "project" / "frontend" / "src",
+        backend_dir,
+        frontend_dir / "src",
         BASE_DIR / "specs",
         BASE_DIR / "docs",
         BASE_DIR / "scripts"
@@ -123,8 +131,7 @@ def deep_audit():
     score = 100
     deductions = []
 
-    # 1. Check for student anti-patterns: bare except: pass
-    backend_dir = BASE_DIR / "project" / "backend"
+    backend_dir = get_backend_dir()
     ignore_subdirs = {"venv", "venv2", "site-packages", "Lib", "__pycache__", ".pytest_cache"}
     for root, dirs, files in os.walk(backend_dir):
         dirs[:] = [d for d in dirs if d not in ignore_subdirs]
