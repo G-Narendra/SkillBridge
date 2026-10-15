@@ -12,6 +12,11 @@ except ImportError:
     process = None
 from blueprint_generator import generate_production_blueprint_files
 from cv_parser import canonicalize_skill
+from dynamic_project_engine import (
+    synthesize_dynamic_blueprints,
+    evaluate_senior_standing,
+    blueprint_cache
+)
 
 load_dotenv()
 logger = logging.getLogger("skillbridge.analyzer")
@@ -693,40 +698,54 @@ def analyze_gap(
         "tier_weights": role_weights
     }
 
-    # Try LLM first, falling back to deterministic generator
-    projects = generate_llm_blueprints(all_missing, target_role)
-    if not projects:
-        projects = build_deterministic_blueprints(all_missing, target_role)
+    # 1. Evaluate Senior Standing (High-Competence Candidate)
+    senior_standing = evaluate_senior_standing(
+        match_percentage=overall_match_percentage,
+        missing_skills=all_missing,
+        target_role=target_role,
+        categorized_gaps=competency_gaps
+    )
 
-    # Ensure every blueprint contains production-grade multi-file architectures & pedagogical metadata
-    for p in projects:
-        title_str = p.get("title", f"{target_role} Architecture Platform")
-        stack_list = p.get("tech_stack", [])
-        if not p.get("starter_files") or len(p.get("starter_files", {})) < 5:
-            p["starter_files"] = generate_production_blueprint_files(
-                title_str,
-                stack_list,
-                p.get("roadmap", []),
-                target_role
+    # 2. Dynamic Blueprint Generation with Persistent Hash Cache
+    # If senior qualified (>= 90% match, <= 1 critical gap), no starter project add-ons needed.
+    if senior_standing.get("is_senior_qualified", False):
+        projects = []
+    else:
+        projects = generate_llm_blueprints(all_missing, target_role)
+        if not projects:
+            projects = synthesize_dynamic_blueprints(target_role, all_missing, all_matched)
+
+        # Ensure every blueprint contains production-grade multi-file architectures & pedagogical metadata
+        for p in projects:
+            title_str = p.get("title", f"{target_role} Architecture Platform")
+            stack_list = p.get("tech_stack", [])
+            if not p.get("starter_files") or len(p.get("starter_files", {})) < 5:
+                p["starter_files"] = generate_production_blueprint_files(
+                    title_str,
+                    stack_list,
+                    p.get("roadmap", []),
+                    target_role
+                )
+            slug = p.get("slug") or (re.sub(r'[^a-zA-Z0-9_-]', '-', title_str.lower()).strip('-') or "skillbridge-project")
+            is_ds = p.get("is_kaggle_track", False) or any(
+                k in target_role.lower() or k in title_str.lower() or any(k in t.lower() for t in stack_list)
+                for k in ["data", "ml", "machine learning", "ai", "pandas", "pytorch", "kaggle", "snowflake", "bigquery"]
             )
-        slug = re.sub(r'[^a-zA-Z0-9_-]', '-', title_str.lower()).strip('-') or "skillbridge-project"
-        is_ds = any(
-            k in target_role.lower() or k in title_str.lower() or any(k in t.lower() for t in stack_list)
-            for k in ["data", "ml", "machine learning", "ai", "pandas", "pytorch", "kaggle", "snowflake", "bigquery"]
-        )
-        p["id"] = slug
-        p["is_kaggle_track"] = is_ds
-        p["is_skeleton"] = True
-        p["manual_cli_commands"] = [
-            f"mkdir {slug} && cd {slug}",
-            "git init -b main",
-            f"# Extract downloaded {slug}-skeleton.zip into this folder",
-            "python -m venv venv",
-            "source venv/bin/activate  # On Windows: .\\venv\\Scripts\\activate",
-            "pip install -r requirements.txt",
-            "pytest tests/ -v  # Run failing TDD test harness",
-            f"gh repo create {slug} --public --source=. --remote=origin --push"
-        ]
+            p["id"] = p.get("id") or slug
+            p["slug"] = slug
+            p["is_kaggle_track"] = is_ds
+            p["is_skeleton"] = True
+            if not p.get("manual_cli_commands"):
+                p["manual_cli_commands"] = [
+                    f"mkdir {slug} && cd {slug}",
+                    "git init -b main",
+                    f"# Extract downloaded {slug}-skeleton.zip into this folder",
+                    "python -m venv venv",
+                    "source venv/bin/activate  # On Windows: .\\venv\\Scripts\\activate",
+                    "pip install -r requirements.txt",
+                    "pytest tests/ -v  # Run failing TDD test harness",
+                    f"gh repo create {slug} --public --source=. --remote=origin --push"
+                ]
 
     # Multi-role comparative analysis across adjacent engineering roles
     related_roles = [r for r in ["Data Analyst", "AI Engineer", "Backend Engineer", "Fullstack Engineer", "Data Engineer", "Machine Learning Engineer"] if r != target_role][:4]
@@ -756,6 +775,8 @@ def analyze_gap(
     return {
         "target_role": target_role,
         "match_percentage": overall_match_percentage,
+        "is_senior_qualified": senior_standing.get("is_senior_qualified", False),
+        "senior_standing": senior_standing,
         "competency_deficit_delta": deficit_delta,
         "category_deficits": category_deficits,
         "euclidean_distance": euclidean_distance,
@@ -766,5 +787,6 @@ def analyze_gap(
         "missing_skills": all_missing,
         "category_breakdown": category_breakdown,
         "multi_role_benchmarks": multi_role_benchmarks,
-        "projects": projects
+        "projects": projects,
+        "cache_stats": blueprint_cache.get_stats()
     }

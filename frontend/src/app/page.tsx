@@ -49,6 +49,7 @@ import { BenchmarkComparisonBanner } from "@/components/BenchmarkComparisonBanne
 import { GranularCapabilityGrid } from "@/components/GranularCapabilityGrid";
 import { GapDiagnosticTable } from "@/components/GapDiagnosticTable";
 import { ManualSetupModal } from "@/components/ManualSetupModal";
+import { SeniorStandingCard } from "@/components/SeniorStandingCard";
 import { ALL_TECH_ROLES } from "@/lib/roles";
 
 const STANDARD_ROLES = ALL_TECH_ROLES;
@@ -1038,9 +1039,19 @@ Generated: ${new Date().toISOString()}
                     <AlertCircle size={32} />
                   </div>
                   <h3 className="text-base font-semibold text-rose-700 dark:text-rose-300 mb-1">
-                    Analysis could not proceed
+                    {errorMessage.toLowerCase().includes("classified as") || errorMessage.toLowerCase().includes("validation failed")
+                      ? "Document Rejected by JEV Gate"
+                      : "Analysis could not proceed"}
                   </h3>
-                  <p className="text-xs text-rose-600 dark:text-rose-400 mb-4">{errorMessage}</p>
+                  <p className="text-xs text-rose-600 dark:text-rose-400 mb-3 leading-relaxed">
+                    {errorMessage}
+                  </p>
+                  {(errorMessage.toLowerCase().includes("classified as") || errorMessage.toLowerCase().includes("validation failed")) && (
+                    <div className="mb-4 p-3 rounded-xl border border-rose-300/60 dark:border-rose-800 bg-white/70 dark:bg-slate-900/60 text-[11px] text-slate-700 dark:text-slate-300 text-left space-y-1">
+                      <span className="font-semibold text-rose-800 dark:text-rose-300 block">JEV Gate Requirement:</span>
+                      <p>SkillBridge requires an authentic technical resume containing Work Experience, Technical Skills, and Education sections to benchmark candidate competencies.</p>
+                    </div>
+                  )}
                   <div className="flex items-center space-x-3">
                     <Button variant="secondary" size="sm" onClick={() => executeAnalysis()}>
                       Retry analysis
@@ -1090,76 +1101,102 @@ Generated: ${new Date().toISOString()}
 
 
 
-                  {/* Project Recommendation Proposals */}
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h3 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
-                          Recommended portfolio projects
-                        </h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Tailored blueprints specifically requiring missing competencies to construct verifiable evidence.
-                        </p>
+                  {/* Senior Standing Evaluation or Project Recommendation Proposals */}
+                  {analysis.is_senior_qualified && analysis.senior_standing ? (
+                    <SeniorStandingCard
+                      seniorStanding={analysis.senior_standing}
+                      targetRole={analysis.target_role || targetRole}
+                      onOpenPortfolioCard={() => setPortfolioCardOpen(true)}
+                      onExportReport={exportCareerReport}
+                    />
+                  ) : (
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <h3 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+                              Recommended portfolio projects
+                            </h3>
+                            {analysis.cache_stats && (
+                              <Badge variant="outline" className="text-[10px] bg-slate-100 dark:bg-slate-800 font-mono">
+                                ⚡ Cache: {analysis.cache_stats.cache_hits || 0} hits / {analysis.cache_stats.cached_entries_count || 0} stored
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            Dynamically synthesized blueprints targeting missing competencies to construct verifiable evidence.
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => setPortfolioCardOpen(true)}
+                            className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm font-medium"
+                          >
+                            <ShieldCheck size={14} className="mr-1.5" />
+                            15s Hiring Manager Card
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={exportCareerReport} className="text-xs">
+                            <Share2 size={13} className="mr-1.5" />
+                            Export blueprint report
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => setPortfolioCardOpen(true)}
-                          className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm font-medium"
-                        >
-                          <ShieldCheck size={14} className="mr-1.5" />
-                          15s Hiring Manager Card
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={exportCareerReport} className="text-xs">
-                          <Share2 size={13} className="mr-1.5" />
-                          Export blueprint report
-                        </Button>
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {(analysis.projects || []).map((project: any, idx: number) => (
-                        <Card
-                          key={idx}
-                          className="flex flex-col justify-between border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0f172a]/80 transition-all hover:border-[#0071e3]/60 shadow-[0_2px_12px_rgba(0,0,0,0.02)]"
-                        >
-                          <CardHeader className="pb-3">
-                            <div className="flex items-start justify-between gap-2">
-                              <CardTitle className="text-base text-slate-900 dark:text-white">{project.title}</CardTitle>
-                              <Badge
-                                variant={
-                                  project.difficulty === "Advanced"
-                                    ? "warning"
-                                    : project.difficulty === "Intermediate"
-                                    ? "default"
-                                    : "success"
-                                }
-                                className="shrink-0 text-[10px]"
-                              >
-                                {project.difficulty}
-                              </Badge>
-                            </div>
-                            <CardDescription className="line-clamp-2 mt-1 text-xs">
-                              {project.objective}
-                            </CardDescription>
-                            <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                              <Badge variant="outline" className="text-[10px] bg-blue-50/60 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/50">
-                                <FolderGit2 size={10} className="mr-1 text-blue-600" />
-                                Skeleton Scaffold
-                              </Badge>
-                              <Badge variant="outline" className="text-[10px] bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50">
-                                <CheckCircle2 size={10} className="mr-1 text-emerald-600" />
-                                TDD Test Suite
-                              </Badge>
-                              {project.is_kaggle_track && (
-                                <Badge variant="outline" className="text-[10px] bg-purple-50/60 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-900/50">
-                                  <Sparkles size={10} className="mr-1 text-purple-600" />
-                                  Kaggle ML Track
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {(analysis.projects || []).map((project: any, idx: number) => (
+                          <Card
+                            key={idx}
+                            className="flex flex-col justify-between border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0f172a]/80 transition-all hover:border-[#0071e3]/60 shadow-[0_2px_12px_rgba(0,0,0,0.02)]"
+                          >
+                            <CardHeader className="pb-3">
+                              <div className="flex items-start justify-between gap-2">
+                                <CardTitle className="text-base text-slate-900 dark:text-white">{project.title}</CardTitle>
+                                <Badge
+                                  variant={
+                                    project.difficulty === "Advanced"
+                                      ? "warning"
+                                      : project.difficulty === "Intermediate"
+                                      ? "default"
+                                      : "success"
+                                  }
+                                  className="shrink-0 text-[10px]"
+                                >
+                                  {project.difficulty}
                                 </Badge>
-                              )}
-                            </div>
-                          </CardHeader>
+                              </div>
+                              <CardDescription className="line-clamp-2 mt-1 text-xs">
+                                {project.objective}
+                              </CardDescription>
+                              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                {project.is_cached ? (
+                                  <Badge variant="outline" className="text-[10px] bg-amber-50/60 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/50">
+                                    <Sparkles size={10} className="mr-1 text-amber-600" />
+                                    ⚡ Instant Cache Hit {project.cache_hit_latency_ms ? `(${project.cache_hit_latency_ms}ms)` : ""}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-[10px] bg-indigo-50/60 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-900/50">
+                                    <Sparkles size={10} className="mr-1 text-indigo-600" />
+                                    ✨ Dynamic Synthesis
+                                  </Badge>
+                                )}
+                                <Badge variant="outline" className="text-[10px] bg-blue-50/60 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/50">
+                                  <FolderGit2 size={10} className="mr-1 text-blue-600" />
+                                  Skeleton Scaffold
+                                </Badge>
+                                <Badge variant="outline" className="text-[10px] bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50">
+                                  <CheckCircle2 size={10} className="mr-1 text-emerald-600" />
+                                  TDD Test Suite
+                                </Badge>
+                                {project.is_kaggle_track && (
+                                  <Badge variant="outline" className="text-[10px] bg-purple-50/60 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-900/50">
+                                    <Sparkles size={10} className="mr-1 text-purple-600" />
+                                    Kaggle ML Track
+                                  </Badge>
+                                )}
+                              </div>
+                            </CardHeader>
 
                           <CardContent className="space-y-3">
                             <div>
@@ -1254,6 +1291,7 @@ Generated: ${new Date().toISOString()}
                       ))}
                     </div>
                   </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

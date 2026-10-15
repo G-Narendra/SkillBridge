@@ -91,3 +91,41 @@ def test_api_provision_requires_real_token():
     res = client.post("/api/provision", json=payload)
     # Correctly rejects sandbox tokens with 401 Unauthorized
     assert res.status_code == 401
+
+def test_api_cache_stats():
+    res = client.get("/api/blueprints/cache/stats")
+    assert res.status_code == 200
+    data = res.json()
+    assert "cached_entries_count" in data
+    assert "cache_hits" in data
+    assert "cache_misses" in data
+    assert "hit_ratio_percentage" in data
+
+def test_api_document_validate():
+    valid_resume = "Alex Rivera\nSoftware Engineer | alex@rivera.dev\nEXPERIENCE:\nFullstack Developer at TechCorp (2021-2025)\nSKILLS: Python, TypeScript, React, Docker\nEDUCATION:\nB.S. in CS (2017-2021)"
+    res1 = client.post("/api/document/validate", json={"document_text": valid_resume})
+    assert res1.status_code == 200
+    assert res1.json()["is_resume"] is True
+
+    invoice_text = "INVOICE #9812\nDue Date: Net 30\nBilled To: Tech Services LLC\nTotal: $1,400.00\nPlease send wire transfer."
+    res2 = client.post("/api/document/validate", json={"document_text": invoice_text})
+    assert res2.status_code == 200
+    assert res2.json()["is_resume"] is False
+    assert "invoice" in res2.json()["rejection_reason"].lower()
+
+def test_api_blueprints_dynamic():
+    payload = {
+        "target_role": "Backend Engineer",
+        "missing_skills": ["Redis", "Kubernetes"],
+        "matched_skills": ["Python", "PostgreSQL", "Docker"]
+    }
+    res = client.post("/api/blueprints/dynamic", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["target_role"] == "Backend Engineer"
+    assert data["blueprints_count"] in [3, 4]
+    assert len(data["blueprints"]) in [3, 4]
+    for bp in data["blueprints"]:
+        assert len(bp["title"]) > 5
+        assert len(bp["starter_files"]) >= 5
+

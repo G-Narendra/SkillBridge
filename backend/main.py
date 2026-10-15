@@ -13,6 +13,8 @@ from dotenv import load_dotenv
 from cv_parser import parse_resume
 from gap_analyzer import analyze_gap, ROLE_PROFILES
 from github_provisioner import provision_repository
+from jev_classifier import classify_document
+from dynamic_project_engine import blueprint_cache, synthesize_dynamic_blueprints
 
 load_dotenv()
 
@@ -38,6 +40,14 @@ class ProvisionRequest(BaseModel):
     starter_files: Optional[Dict[str, str]] = Field(default=None, description="Starter scaffold files")
     token: Optional[str] = Field(default="default", description="Developer platform personal access token, 'default' for system token, or 'sandbox'")
     provider: Optional[str] = Field(default="github", description="Target platform: github or gitlab")
+
+class DocumentValidationRequest(BaseModel):
+    document_text: str = Field(..., min_length=20, description="Raw document text to evaluate with JEV")
+
+class DynamicBlueprintsRequest(BaseModel):
+    target_role: str = Field(..., description="Target engineering role")
+    missing_skills: List[str] = Field(default_factory=list, description="List of missing skills to bridge")
+    matched_skills: List[str] = Field(default_factory=list, description="List of verified skills")
 
 @app.get("/")
 async def root_status():
@@ -143,6 +153,10 @@ async def parse_and_analyze_resume(
         "category_breakdown": gap_result["category_breakdown"],
         "multi_role_benchmarks": gap_result.get("multi_role_benchmarks", []),
         "resume_audit": parsed_resume.get("resume_audit", {}),
+        "is_senior_qualified": gap_result.get("is_senior_qualified", False),
+        "senior_standing": gap_result.get("senior_standing", {}),
+        "cache_stats": gap_result.get("cache_stats", {}),
+        "jev_validation": parsed_resume.get("jev_validation", {}),
         "projects": gap_result["projects"]
     }
 
@@ -330,4 +344,39 @@ async def get_portfolio_card_endpoint(username: str, role: Optional[str] = "Ai A
     """
     from telemetry_service import synthesize_portfolio_card
     return synthesize_portfolio_card(username=username, target_role=role or "Ai Agents Engineer")
+
+@app.get("/api/blueprints/cache/stats")
+async def get_blueprint_cache_stats():
+    """
+    Returns real-time performance and persistent storage metrics for the dynamic project blueprint cache.
+    """
+    return blueprint_cache.get_stats()
+
+@app.post("/api/document/validate")
+async def validate_document_endpoint(payload: DocumentValidationRequest):
+    """
+    JEV Gate: Evaluates whether input text represents a bona fide technical resume or a non-resume document.
+    Rejects invoices, research papers, legal agreements, and random source code early.
+    """
+    result = classify_document(payload.document_text)
+    return result.model_dump()
+
+@app.post("/api/blueprints/dynamic")
+async def generate_dynamic_blueprints_endpoint(payload: DynamicBlueprintsRequest):
+    """
+    Synthesizes bespoke, non-static project blueprints specifically addressing missing skill gaps.
+    Leverages persistent hash caching to deliver sub-3ms responses for previously synthesized pairs.
+    """
+    blueprints = synthesize_dynamic_blueprints(
+        target_role=payload.target_role,
+        missing_skills=payload.missing_skills,
+        matched_skills=payload.matched_skills
+    )
+    return {
+        "target_role": payload.target_role,
+        "blueprints_count": len(blueprints),
+        "blueprints": blueprints,
+        "cache_stats": blueprint_cache.get_stats()
+    }
+
 

@@ -2,6 +2,7 @@ import io
 import re
 from typing import Dict, List, Set, Any
 import pypdf
+from jev_classifier import classify_document, JEVValidationResult
 try:
     import pdfplumber
 except ImportError:
@@ -396,9 +397,15 @@ def extract_skills_from_text(text: str) -> Dict[str, List[str]]:
 def parse_resume(file_bytes: bytes) -> Dict[str, Any]:
     """
     Coordinates extraction of text, contacts, experience years, and categorized skills.
-    Applies GDPR/DPDP PII stripping for bias-free recruitment evaluation.
+    Applies JEV document validation and GDPR/DPDP PII stripping.
     """
     raw_text = extract_text_from_pdf(file_bytes)
+    jev_validation = classify_document(raw_text)
+    if not jev_validation.is_resume:
+        raise ValueError(
+            f"Document validation failed: {jev_validation.rejection_reason} {jev_validation.actionable_guidance}"
+        )
+
     contacts = extract_candidate_links(raw_text)
     anonymized_result = anonymize_resume_pii(raw_text, contacts)
     experience_years = detect_experience_years(raw_text)
@@ -419,5 +426,6 @@ def parse_resume(file_bytes: bytes) -> Dict[str, Any]:
         "experience_years": experience_years,
         "categorized_skills": categorized_skills,
         "skills": flat_skills,
-        "resume_audit": resume_audit
+        "resume_audit": resume_audit,
+        "jev_validation": jev_validation.model_dump()
     }
