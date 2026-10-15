@@ -35,14 +35,14 @@ export const GapDiagnosticTable: React.FC<GapDiagnosticTableProps> = ({ gaps, ta
         <div>
           <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5">
             <AlertCircle size={15} className="text-amber-500 inline" />
-            <span>Identified Skill Gaps</span>
+            <span>Missing Skills</span>
           </h4>
           <span className="text-[11px] text-slate-500 dark:text-slate-400">
-            Prioritized skills for this role with clear engineering rationale
+            Key skills to learn to match this role.
           </span>
         </div>
         <span className="text-xs font-mono font-medium text-slate-600 dark:text-slate-300">
-          {gaps.length} Skill {gaps.length === 1 ? "Gap" : "Gaps"}
+          {gaps.length} Missing {gaps.length === 1 ? "Skill" : "Skills"}
         </span>
       </div>
 
@@ -50,11 +50,11 @@ export const GapDiagnosticTable: React.FC<GapDiagnosticTableProps> = ({ gaps, ta
         <table className="w-full text-left text-xs border-collapse">
           <thead>
             <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#1e293b]/60 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
-              <th className="py-3 px-4">Skill Requirement</th>
+              <th className="py-3 px-4">Skill</th>
               <th className="py-3 px-3">Category</th>
-              <th className="py-3 px-3 text-center">Target Benchmark</th>
+              <th className="py-3 px-3 text-center">Score Impact</th>
               <th className="py-3 px-3 text-center">Priority</th>
-              <th className="py-3 px-4">Why This Skill Matters</th>
+              <th className="py-3 px-4">Why it matters</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">

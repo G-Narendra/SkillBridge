@@ -511,41 +511,41 @@ Do not write markdown formatting around the JSON. Return only the raw JSON.
 
 def generate_pedagogical_reasoning(skill: str, tier: str, role: str) -> str:
     """
-    Produces factual pedagogical justifications for identified competency deficits.
-    Avoids conversational AI filler; provides direct industrial engineering rationale.
+    Produces clear, simple, human explanations for why a missing skill matters in real-world jobs.
+    Avoids robotic AI jargon and academic filler.
     """
     skill_lower = skill.lower()
     if "docker" in skill_lower:
-        return "84% of modern engineering positions mandate container runtime isolation and microservice packaging."
+        return "Lets you package and run applications consistently across any machine or cloud server."
     if "kubernetes" in skill_lower or "k8s" in skill_lower:
-        return "Mandatory for container orchestration, pod autoscaling, and cloud-native resilience."
+        return "Automates deploying, scaling, and managing containerized apps without manual server setup."
     if "postgres" in skill_lower or "sql" in skill_lower:
-        return "Core relational persistence standard for ACID transactions, indexing, and query optimization."
+        return "Standard database used everywhere to store, organize, and look up application data reliably."
     if "redis" in skill_lower:
-        return "In-memory caching and session state management to achieve sub-millisecond retrieval latencies."
+        return "Super-fast in-memory cache used to speed up apps and store temporary session data."
     if "fastapi" in skill_lower or "flask" in skill_lower or "django" in skill_lower:
-        return "Backend web gateway layer for non-blocking asynchronous I/O and typed schema contracts."
+        return "Popular web framework used to build fast APIs and connect backends with frontends."
     if "react" in skill_lower or "next.js" in skill_lower:
-        return "Standard frontend component architecture for interactive state management and server-side rendering."
+        return "Widely used library for building modern, fast, and interactive user interfaces."
     if "pytorch" in skill_lower or "tensorflow" in skill_lower:
-        return "Essential tensor computation graph framework for deep learning model training and inference."
+        return "Core library used to train and run machine learning and deep learning models."
     if "snowflake" in skill_lower or "bigquery" in skill_lower:
-        return "High-performance columnar OLAP cloud data warehousing for high-throughput analytics."
+        return "Cloud data warehouse built to run fast analysis and queries on massive datasets."
     if "git" in skill_lower or "actions" in skill_lower or "ci/cd" in skill_lower:
-        return "Essential software engineering practice for version control, automated testing, and release hygiene."
+        return "Tracks your code changes and runs automated tests before shipping to production."
     if "pandas" in skill_lower or "numpy" in skill_lower:
-        return "Fundamental numerical computation and vectorized tabular manipulation library."
+        return "Essential tools for cleaning, organizing, and analyzing tables of data in Python."
     if "dbt" in skill_lower:
-        return "Data transformation workflow standard for modular SQL modeling and testing."
+        return "Helps write, test, and organize SQL models to clean up raw data for analytics."
     if "spark" in skill_lower:
-        return "Distributed cluster computation engine for large-scale dataset transformations."
+        return "Processes massive amounts of data across multiple computers much faster than standard tools."
     if tier == "languages":
-        return f"Primary programming language requirement benchmarked in Tier-1 {role} specifications."
+        return f"Core programming language used everyday by {role} teams."
     if tier == "frameworks":
-        return f"Core architectural framework required to structure scalable applications in {role} roles."
+        return f"Primary framework used to build and organize applications in {role} work."
     if tier == "databases":
-        return f"Critical persistence engine required for data integrity and high-throughput query performance."
-    return f"Standard industry tool required for professional production deployments in {role} positions."
+        return f"Key database used to store and manage data safely for {role} positions."
+    return f"Standard tool used by engineering teams working in {role} roles."
 
 def analyze_gap(
     candidate_skills: List[str],

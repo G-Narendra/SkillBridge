@@ -24,10 +24,10 @@ export function ResumeAuditCard({ audit, onExportReport }: ResumeAuditCardProps)
           <FileCheck size={18} className="text-[#0071e3]" />
           <div>
             <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-              Resume diagnostic audit
+              Resume Feedback
             </h4>
             <span className="text-[11px] text-slate-500 dark:text-slate-400">
-              Automated impact analysis and recommendation checklist
+              Review of what is strong and what can be improved.
             </span>
           </div>
         </div>
@@ -41,7 +41,7 @@ export function ResumeAuditCard({ audit, onExportReport }: ResumeAuditCardProps)
           </Badge>
           <Button variant="outline" size="sm" onClick={onExportReport} className="text-[11px]">
             <Download size={13} className="mr-1" />
-            Export audit
+            Export report
           </Button>
         </div>
       </div>
@@ -51,7 +51,7 @@ export function ResumeAuditCard({ audit, onExportReport }: ResumeAuditCardProps)
         <div className="space-y-2 rounded-xl border border-emerald-500/15 bg-emerald-50/40 dark:bg-emerald-500/5 p-3.5">
           <div className="flex items-center space-x-1.5 text-emerald-700 dark:text-emerald-400 font-semibold">
             <CheckCircle size={14} />
-            <span>Observed strengths</span>
+            <span>What looks good</span>
           </div>
           <ul className="space-y-1.5 text-slate-700 dark:text-slate-300">
             {audit.strengths?.map((str, idx) => (
@@ -67,7 +67,7 @@ export function ResumeAuditCard({ audit, onExportReport }: ResumeAuditCardProps)
         <div className="space-y-2 rounded-xl border border-amber-500/15 bg-amber-50/40 dark:bg-amber-500/5 p-3.5">
           <div className="flex items-center space-x-1.5 text-amber-700 dark:text-amber-400 font-semibold">
             <Lightbulb size={14} />
-            <span>Target improvements</span>
+            <span>Suggestions to improve</span>
           </div>
           <ul className="space-y-1.5 text-slate-700 dark:text-slate-300">
             {audit.actionable_recommendations?.map((rec, idx) => (

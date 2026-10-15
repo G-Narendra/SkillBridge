@@ -51,6 +51,7 @@ import { GapDiagnosticTable } from "@/components/GapDiagnosticTable";
 import { ManualSetupModal } from "@/components/ManualSetupModal";
 import { SeniorStandingCard } from "@/components/SeniorStandingCard";
 import { ALL_TECH_ROLES, isTechnicalRole } from "@/lib/roles";
+import { SkillBridgeLogo } from "@/components/SkillBridgeLogo";
 
 const STANDARD_ROLES = ALL_TECH_ROLES;
 const OFFICIAL_RENDER_BACKEND = "https://skillbridge-backend-1pm3.onrender.com";
@@ -804,25 +805,16 @@ Generated: ${new Date().toISOString()}
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <div className="flex items-center space-x-3 sm:space-x-4">
             <div className="flex items-center space-x-2.5">
-              <div className="rounded-xl bg-[#0071e3] p-2 text-white shadow-sm">
-                <Code2 size={18} />
-              </div>
+              <SkillBridgeLogo size={34} />
               <div>
                 <h1 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight">
-                  SkillBridge AI
+                  SkillBridge
                 </h1>
                 <span className="hidden md:block text-[10px] text-slate-500 dark:text-slate-400">
-                  Verifiable portfolio architecture platform
+                  Career Project Builder
                 </span>
               </div>
             </div>
-
-            <Badge variant="outline" className="font-mono text-[11px] tabular-nums hidden sm:inline-flex">
-              {status === "idle" && "System ready"}
-              {status === "loading" && "Benchmarking competencies"}
-              {status === "success" && "Analysis complete"}
-              {status === "error" && "Analysis halted"}
-            </Badge>
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-3">
@@ -843,10 +835,10 @@ Generated: ${new Date().toISOString()}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
         <div className="mb-8">
           <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
-            Portfolio blueprint generator
+            Career Project Builder
           </h2>
           <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-            Convert static resumes into verifiable code repositories based on benchmarked job profiles.
+            Compare your resume against industry standards, find missing skills, and build real projects.
           </p>
         </div>
 
@@ -855,13 +847,13 @@ Generated: ${new Date().toISOString()}
           <div className="lg:col-span-4 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Configuration</CardTitle>
-                <CardDescription>Select target technology role and upload resume document</CardDescription>
+                <CardTitle>Role & Resume</CardTitle>
+                <CardDescription>Choose your target role and upload your resume.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
                 <div className="space-y-2">
                   <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Target technology role
+                    Target role
                   </label>
                   <RoleCombobox
                     value={targetRole}
@@ -939,7 +931,7 @@ Generated: ${new Date().toISOString()}
               <Card className="border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0f172a]/60">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Candidate profile
+                    Your Profile
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-xs">
@@ -987,17 +979,6 @@ Generated: ${new Date().toISOString()}
                     <span className="text-slate-400">Detected experience:</span>
                     <span className="font-mono tabular-nums">{analysis.experience_years} years</span>
                   </div>
-                  {analysis.anonymization_audit && (
-                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-slate-800">
-                      <span className="flex items-center text-emerald-600 dark:text-emerald-400 font-medium">
-                        <ShieldCheck size={13} className="mr-1" />
-                        GDPR/DPDP Protected
-                      </span>
-                      <span className="font-mono text-[10px] text-slate-500">
-                        {analysis.anonymization_audit.total_redactions || 0} PII stripped
-                      </span>
-                    </div>
-                  )}
 
                   {/* Dynamic Dimension Distribution Bar Chart */}
                   <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
@@ -1131,16 +1112,11 @@ Generated: ${new Date().toISOString()}
                         <div>
                           <div className="flex items-center space-x-2">
                             <h3 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
-                              Recommended portfolio projects
+                              Recommended Projects
                             </h3>
-                            {analysis.cache_stats && (
-                              <Badge variant="outline" className="text-[10px] bg-slate-100 dark:bg-slate-800 font-mono">
-                                ⚡ Cache: {analysis.cache_stats.cache_hits || 0} hits / {analysis.cache_stats.cached_entries_count || 0} stored
-                              </Badge>
-                            )}
                           </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            Dynamically synthesized blueprints targeting missing competencies to construct verifiable evidence.
+                            Hands-on projects tailored to help you build and prove missing skills.
                           </p>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -1155,7 +1131,7 @@ Generated: ${new Date().toISOString()}
                           </Button>
                           <Button variant="outline" size="sm" onClick={exportCareerReport} className="text-xs">
                             <Share2 size={13} className="mr-1.5" />
-                            Export blueprint report
+                            Export report
                           </Button>
                         </div>
                       </div>
@@ -1186,20 +1162,9 @@ Generated: ${new Date().toISOString()}
                                 {project.objective}
                               </CardDescription>
                               <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                                {project.is_cached ? (
-                                  <Badge variant="outline" className="text-[10px] bg-amber-50/60 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/50">
-                                    <Sparkles size={10} className="mr-1 text-amber-600" />
-                                    ⚡ Instant Cache Hit {project.cache_hit_latency_ms ? `(${project.cache_hit_latency_ms}ms)` : ""}
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="outline" className="text-[10px] bg-indigo-50/60 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-900/50">
-                                    <Sparkles size={10} className="mr-1 text-indigo-600" />
-                                    ✨ Dynamic Synthesis
-                                  </Badge>
-                                )}
                                 <Badge variant="outline" className="text-[10px] bg-blue-50/60 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/50">
                                   <FolderGit2 size={10} className="mr-1 text-blue-600" />
-                                  Skeleton Scaffold
+                                  Runnable Repository
                                 </Badge>
                                 <Badge variant="outline" className="text-[10px] bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50">
                                   <CheckCircle2 size={10} className="mr-1 text-emerald-600" />
@@ -1217,7 +1182,7 @@ Generated: ${new Date().toISOString()}
                           <CardContent className="space-y-3">
                             <div>
                               <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
-                                Target competencies addressed:
+                                Skills you&apos;ll learn:
                               </span>
                               <div className="flex flex-wrap gap-1.5">
                                 {project.target_skills_covered && project.target_skills_covered.length > 0 ? (

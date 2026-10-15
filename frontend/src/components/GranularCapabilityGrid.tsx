@@ -127,38 +127,17 @@ export const GranularCapabilityGrid: React.FC<GranularCapabilityGridProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-slate-200/60 dark:border-slate-800">
         <div>
           <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
-            Competency Breakdown
+            Skill Breakdown
           </h4>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-            Required technical skills and category distributions for this role.
+            Skills expected for this role.
           </p>
         </div>
 
         <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 shrink-0">
-          {activeDimensions.length} Categories (Total = 100%)
+          {activeDimensions.length} Skill Categories
         </span>
       </div>
-
-      {/* Omitted Metrics Fair Assessment Notice */}
-      {omittedList.length > 0 && (
-        <div className="flex items-start space-x-2.5 rounded-xl border border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-950/20 px-3.5 py-2.5 text-xs text-emerald-900 dark:text-emerald-200">
-          <Info size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-          <div className="space-y-0.5">
-            <span className="font-semibold block leading-tight">
-              Fair Assessment: Non-Essential Skills Excluded
-            </span>
-            <p className="text-[11px] text-emerald-800/90 dark:text-emerald-300/90">
-              The following domains are not required for this role and have <strong className="font-semibold">0% weight</strong>:{" "}
-              {omittedList.map((m, idx) => (
-                <span key={m} className="font-mono bg-emerald-100/70 dark:bg-emerald-900/50 px-1.5 py-0.2 rounded text-[10px] mx-0.5">
-                  {m}{idx < omittedList.length - 1 ? "" : ""}
-                </span>
-              ))}
-              . Candidates are not evaluated or penalized on these.
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Dynamic Dimensions Grid */}
       <div className={`grid grid-cols-1 md:grid-cols-2 ${activeDimensions.length > 3 ? "lg:grid-cols-4" : "lg:grid-cols-3"} gap-4`}>
@@ -248,7 +227,7 @@ export const GranularCapabilityGrid: React.FC<GranularCapabilityGridProps> = ({
                       ))
                     ) : (
                       <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-                        All tier requirements met
+                        All skills covered
                       </span>
                     )}
                   </div>

@@ -20,10 +20,10 @@ export function MultiRoleBenchmark({ benchmarks, onSelectRole }: MultiRoleBenchm
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          Adjacent role benchmark matrix
+          How you match other roles
         </h4>
         <span className="text-[11px] text-slate-400 dark:text-slate-500">
-          Multi-track qualification benchmark
+          See your fit for adjacent career paths
         </span>
       </div>
 

@@ -56,7 +56,7 @@ class BlueprintCacheManager:
     def compute_key(self, role: str, missing_skills: List[str], project_index: int, is_freshman: bool = False) -> str:
         clean_role = role.strip().lower()
         clean_skills = ":".join(sorted([s.strip().lower() for s in missing_skills]))
-        raw = f"v3|{clean_role}|{clean_skills}|{project_index}|{'freshman' if is_freshman else 'standard'}"
+        raw = f"v4|{clean_role}|{clean_skills}|{project_index}|{'freshman' if is_freshman else 'standard'}"
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
     def get(self, key: str) -> Optional[Dict[str, Any]]:
@@ -212,6 +212,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Beginner" if is_freshman else "Intermediate",
                 "hours": 18 if is_freshman else 24,
                 "theme_template": "Accessible {primary} Component Design System & UI Library",
+                "objective_template": "Build a reusable, accessible component design system in {primary} with WCAG tokens, responsive variants, and interactive documentation.",
+                "architecture_template": "Component-driven interface architecture using {primary} with strict prop types, design tokens, and Jest unit tests.",
                 "slug_base": "design-system-ui-library"
             },
             {
@@ -221,6 +223,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Intermediate",
                 "hours": 28,
                 "theme_template": "Real-Time {primary} Performance Dashboard & State Architecture",
+                "objective_template": "Create a fast, responsive single-page analytics dashboard with real-time state management, theme switching, and data visualization using {primary}.",
+                "architecture_template": "Modern client architecture utilizing {primary} and Tailwind CSS with client-side caching and debounced API interactions.",
                 "slug_base": "client-state-dashboard"
             },
             {
@@ -230,6 +234,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Intermediate",
                 "hours": 20,
                 "theme_template": "Modern {primary} Application Build & Automated Testing Suite",
+                "objective_template": "Set up a high-performance frontend build pipeline with automated unit, integration, and visual regression tests using {primary}.",
+                "architecture_template": "Modular frontend architecture powered by {primary} with automated test runners and code coverage reporting.",
                 "slug_base": "frontend-build-test-suite"
             },
             {
@@ -239,6 +245,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Advanced",
                 "hours": 32,
                 "theme_template": "Production-Grade {role} Portfolio Showcase Platform",
+                "objective_template": "Ship a production-ready web application showcasing responsive layouts, accessible navigation, and optimized assets for {role}.",
+                "architecture_template": "Production web application utilizing {primary} and TypeScript with server-side rendering and static asset optimization.",
                 "slug_base": "frontend-portfolio-platform"
             }
         ]
@@ -253,6 +261,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Intermediate",
                 "hours": 24,
                 "theme_template": "Declarative {primary} Multi-Environment Infrastructure Pipeline",
+                "objective_template": "Provision reproducible multi-environment cloud infrastructure using declarative {primary} configurations and automated security scans.",
+                "architecture_template": "Modular infrastructure as code utilizing {primary} with remote state locking and least-privilege IAM policies.",
                 "slug_base": "cloud-infrastructure-pipeline"
             },
             {
@@ -262,6 +272,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Intermediate",
                 "hours": 28,
                 "theme_template": "High-Availability {primary} Container Cluster & Ingress Gateway",
+                "objective_template": "Deploy a containerized application cluster with automated health checks, ingress routing, and service discovery using {primary}.",
+                "architecture_template": "Containerized cluster architecture utilizing {primary} with readiness/liveness probes and rolling updates.",
                 "slug_base": "container-cluster-gateway"
             },
             {
@@ -271,6 +283,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Intermediate",
                 "hours": 20,
                 "theme_template": "Automated {primary} Continuous Delivery Pipeline & Security Gate",
+                "objective_template": "Build an automated CI/CD pipeline that lints code, runs test suites, scans for vulnerabilities, and deploys artifacts using {primary}.",
+                "architecture_template": "Declarative pipeline workflow utilizing {primary} with automated branch protection and artifact caching.",
                 "slug_base": "cicd-delivery-pipeline"
             },
             {
@@ -280,6 +294,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Advanced",
                 "hours": 26,
                 "theme_template": "Production-Grade {role} Observability & Alerting Stack",
+                "objective_template": "Configure end-to-end metrics collection, structured logging, SLA alerting thresholds, and interactive dashboards using {primary}.",
+                "architecture_template": "Telemetry stack utilizing {primary} with Prometheus metrics exporters and Grafana visualization panels.",
                 "slug_base": "observability-telemetry-stack"
             }
         ]
@@ -294,6 +310,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Beginner" if is_freshman else "Intermediate",
                 "hours": 18 if is_freshman else 24,
                 "theme_template": "Executive {primary} KPI Analytics & Business Intelligence Dashboard",
+                "objective_template": "Build an interactive business intelligence dashboard visualizing revenue trends, cohort metrics, and operational KPIs using {primary}.",
+                "architecture_template": "Interactive business intelligence architecture utilizing {primary} and SQL data models with automated drill-down reporting.",
                 "slug_base": "bi-analytics-dashboard"
             },
             {
@@ -303,6 +321,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Intermediate",
                 "hours": 28,
                 "theme_template": "Predictive {primary} Customer Churn & Cohort Retention Model",
+                "objective_template": "Develop a statistical churn prediction and customer retention model using {primary} to identify at-risk accounts.",
+                "architecture_template": "Analytical modeling pipeline utilizing {primary} with feature engineering, cohort segmentation, and model evaluation metrics.",
                 "slug_base": "customer-churn-model"
             },
             {
@@ -312,6 +332,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Intermediate",
                 "hours": 22,
                 "theme_template": "Automated {primary} Data Harmonization & Quality Verification Suite",
+                "objective_template": "Create an automated data quality and validation pipeline using {primary} to detect anomalies, handle missing values, and test schema rules.",
+                "architecture_template": "Data validation pipeline utilizing {primary} with automated schema assertions and test report generation.",
                 "slug_base": "data-harmonization-suite"
             },
             {
@@ -321,6 +343,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Advanced",
                 "hours": 30,
                 "theme_template": "Strategic {role} Financial & Operational Forecast Engine",
+                "objective_template": "Design an analytical forecasting model in {primary} to project financial performance and simulate business growth scenarios for {role}.",
+                "architecture_template": "Financial forecasting model utilizing {primary} and SQL with time-series trends and scenario simulation tables.",
                 "slug_base": "operational-forecast-engine"
             }
         ]
@@ -335,6 +359,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Intermediate",
                 "hours": 26,
                 "theme_template": "High-Performance {primary} Retrieval-Augmented Generation (RAG) Engine",
+                "objective_template": "Build a semantic search and question-answering system using {primary} with dense vector embeddings and relevant document chunking.",
+                "architecture_template": "Retrieval-augmented pipeline utilizing {primary} with vector indexing, semantic search, and context-aware prompt templates.",
                 "slug_base": "rag-retrieval-engine"
             },
             {
@@ -344,6 +370,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Intermediate",
                 "hours": 30,
                 "theme_template": "Autonomous {primary} Cognitive Agent & Tool Calling Gateway",
+                "objective_template": "Construct an autonomous AI agent capable of multi-step tool execution, structured output parsing, and error recovery using {primary}.",
+                "architecture_template": "Agentic service architecture utilizing {primary} with structured tool interfaces and API guardrails.",
                 "slug_base": "cognitive-agent-gateway"
             },
             {
@@ -353,6 +381,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Intermediate",
                 "hours": 22,
                 "theme_template": "High-Throughput {primary} Semantic Cache & Embedding Store",
+                "objective_template": "Implement an in-memory semantic cache and vector retrieval layer using {primary} to minimize repeated LLM inference costs and latency.",
+                "architecture_template": "High-speed semantic caching proxy utilizing {primary} with cosine similarity thresholding and automatic cache invalidation.",
                 "slug_base": "semantic-cache-proxy"
             },
             {
@@ -362,6 +392,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Advanced",
                 "hours": 36,
                 "theme_template": "Production-Grade {role} Intelligence Platform",
+                "objective_template": "Deploy an end-to-end machine learning inference API with model versioning, batch scoring, and request validation for {role}.",
+                "architecture_template": "Scalable ML inference service utilizing {primary} and FastAPI with containerized runtime and automated model benchmarks.",
                 "slug_base": "ai-intelligence-platform"
             }
         ]
@@ -376,6 +408,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Intermediate",
                 "hours": 24,
                 "theme_template": "Enterprise {primary} Strategy & Architecture Governance Framework",
+                "objective_template": "Author a comprehensive technical strategy and architecture governance blueprint evaluating tech stack decisions and system boundaries using {primary}.",
+                "architecture_template": "Strategic governance framework with Architecture Decision Records (ADRs) and component interaction diagrams.",
                 "slug_base": "architecture-governance-framework"
             },
             {
@@ -385,6 +419,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Intermediate",
                 "hours": 20,
                 "theme_template": "Enterprise {primary} & Security Audit Engine",
+                "objective_template": "Conduct a technical due-diligence and risk audit covering data privacy, access control policies, and compliance standards using {primary}.",
+                "architecture_template": "Technical audit framework evaluating security posture, data governance, and regulatory requirements.",
                 "slug_base": "security-audit-engine"
             },
             {
@@ -394,6 +430,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Advanced",
                 "hours": 28,
                 "theme_template": "Cloud {primary} & Disaster Recovery Audit Engine",
+                "objective_template": "Formulate a cloud unit economics optimization strategy and disaster recovery plan to control infrastructure spend using {primary}.",
+                "architecture_template": "Cloud cost and resilience framework modeling Total Cost of Ownership (TCO) and multi-region failover protocols.",
                 "slug_base": "cloud-tco-risk-engine"
             },
             {
@@ -403,6 +441,8 @@ def get_discipline_project_tracks(
                 "difficulty": "Advanced",
                 "hours": 32,
                 "theme_template": "Executive Technical Due-Diligence & Strategic Scaling Engine",
+                "objective_template": "Develop an executive technology roadmap aligning engineering capacity, platform modernization, and business milestones.",
+                "architecture_template": "Executive technology roadmap with phased delivery milestones, hiring plans, and system scaling targets.",
                 "slug_base": "technical-due-diligence-engine"
             }
         ]
@@ -415,6 +455,8 @@ def get_discipline_project_tracks(
         "difficulty": "Beginner",
         "hours": 16,
         "theme_template": "Foundational {primary} Architecture & Automated Testing Suite",
+        "objective_template": "Build a clean backend REST API in {primary} with input validation, database persistence, and automated unit test suites.",
+        "architecture_template": "Clean REST API architecture utilizing {primary} with typed request schemas and automated pytest verification.",
         "slug_base": "foundational-test-suite"
     } if is_freshman else {
         "track": "Data Persistence & Microservices",
@@ -423,6 +465,8 @@ def get_discipline_project_tracks(
         "difficulty": "Intermediate",
         "hours": 28,
         "theme_template": "High-Throughput {primary} Analytics & Persistence Engine",
+        "objective_template": "Implement a scalable database service using {primary} with optimized relational queries, indexing, and connection pooling.",
+        "architecture_template": "High-throughput persistence service utilizing {primary} and PostgreSQL with transaction safety and query optimization.",
         "slug_base": "analytics-persistence-engine"
     }
 
@@ -435,6 +479,8 @@ def get_discipline_project_tracks(
             "difficulty": "Intermediate",
             "hours": 32,
             "theme_template": "Distributed {primary} Microservice with Automated Workflows",
+            "objective_template": "Design an asynchronous background service using {primary} to process tasks with reliable queueing and error handling.",
+            "architecture_template": "Decoupled backend service utilizing {primary} with asynchronous task execution and structured logging.",
             "slug_base": "distributed-microservice"
         },
         {
@@ -444,6 +490,8 @@ def get_discipline_project_tracks(
             "difficulty": "Intermediate",
             "hours": 24,
             "theme_template": "Zero-Downtime {primary} Automation Pipeline & Telemetry",
+            "objective_template": "Containerize a backend application using {primary} with automated CI testing, health probes, and deployment scripts.",
+            "architecture_template": "Containerized deployment setup utilizing {primary} and Docker with health endpoints and automated GitHub Actions testing.",
             "slug_base": "automation-pipeline-telemetry"
         },
         {
@@ -453,6 +501,8 @@ def get_discipline_project_tracks(
             "difficulty": "Advanced",
             "hours": 36,
             "theme_template": "Enterprise High-Throughput Service Platform",
+            "objective_template": "Architect a complete production backend platform combining authentication, database storage, and external API integrations for {role}.",
+            "architecture_template": "Enterprise service architecture utilizing {primary} and FastAPI with database migrations and comprehensive integration tests.",
             "slug_base": "enterprise-service-platform"
         }
     ]
@@ -511,32 +561,39 @@ def synthesize_dynamic_blueprints(
         if not targeted_gaps:
             targeted_gaps = combined_stack[:2]
 
-        if "Analytics" in title or "BI" in title or "Data" in title:
-            objective = "Production data pipeline implementing automated schema validation, transformation logic, and real-time analytical reporting."
-        elif "Design System" in title or "UI" in title or "Dashboard" in title or "Frontend" in title:
-            objective = "Component-driven interface architecture with WCAG accessibility tokens, responsive layout patterns, and visual regression test harnesses."
-        elif "Pipeline" in title or "Infrastructure" in title or "Ansible" in title or "Terraform" in title:
-            objective = "Automated infrastructure as code and deployment pipeline featuring container security scanning, health probes, and CI/CD automation."
-        elif "Governance" in title or "Due-Diligence" in title or "Audit" in title or "Strategy" in title:
-            objective = "Executive technical governance framework evaluating architecture decisions, regulatory compliance, and cloud unit economics."
-        elif "Semantic" in title or "RAG" in title or "Agent" in title or "AI" in title:
-            objective = "Retrieval-augmented service utilizing vector embeddings, semantic caching, and asynchronous inference pipelines."
+        if "objective_template" in arch:
+            objective = arch["objective_template"].format(primary=clean_primary, role=clean_role_title)
         else:
-            objective = "Production service implementing domain-driven architecture, resilient input validation, connection pooling, and structured error propagation."
+            objective = f"Production-grade project developing a verified system utilizing {clean_primary}."
 
-        architecture = (
-            f"Modular domain-driven architecture utilizing {combined_stack[0]} and {combined_stack[1]} "
-            f"packaged in Docker containers with structured error propagation and Prometheus telemetry."
-        )
+        if "architecture_template" in arch:
+            architecture = arch["architecture_template"].format(primary=clean_primary, role=clean_role_title)
+        else:
+            architecture = f"Modular service architecture utilizing {combined_stack[0]} and {combined_stack[1]} with automated tests."
+
+        if discipline == "data_analytics":
+            m4 = f"Milestone 4: Build interactive dashboard reporting, document KPI metrics, and run scenario simulations"
+        elif discipline == "frontend_ui":
+            m4 = f"Milestone 4: Test responsive layout breakpoints, verify accessible keyboard navigation, and deploy static assets"
+        elif discipline == "devops_platform":
+            m4 = f"Milestone 4: Deploy multi-container orchestration with {clean_primary}, configure health checks, and verify rollback"
+        elif discipline in ["ai_agents", "ml_engineering"]:
+            m4 = f"Milestone 4: Package model serving endpoint with {clean_primary}, add batch inference, and evaluate accuracy"
+        elif discipline == "tech_leadership_advisory":
+            m4 = f"Milestone 4: Deliver executive architecture decision records (ADRs), risk matrix, and migration roadmap"
+        else:
+            m4 = f"Milestone 4: Configure containerization with Docker, health endpoints (/health/live, /health/ready), and automated CI testing"
 
         roadmap = [
-            f"Milestone 1: Scaffold {combined_stack[0]} domain schemas, connection configuration, and environment parsing",
+            f"Milestone 1: Scaffold {combined_stack[0]} project structure, configuration, and environment setup",
             f"Milestone 2: Implement core processing logic integrating {', '.join(combined_stack[1:3])} with input validation",
             f"Milestone 3: Develop automated test suites with pytest asserting SLA compliance and error handling",
-            f"Milestone 4: Configure Docker containerization, health probes (/health/live, /health/ready), and CI/CD pipelines"
+            m4
         ]
 
-        starter_files = _generate_dynamic_starter_code(title, combined_stack, roadmap, target_role)
+        starter_files = _generate_dynamic_starter_code(
+            title, combined_stack, roadmap, target_role, objective=objective, architecture=architecture
+        )
 
         # Build clean, human-readable repository slug without hex hashes or triple hyphens
         raw_slug = f"{clean_primary.lower()}-{arch.get('slug_base', 'portfolio-project')}"
@@ -589,7 +646,9 @@ def _generate_dynamic_starter_code(
     title: str,
     tech_stack: List[str],
     roadmap: List[str],
-    role: str
+    role: str,
+    objective: str = "",
+    architecture: str = ""
 ) -> Dict[str, str]:
     """
     Synthesizes complete, runnable, and testable starter project files for any dynamic blueprint.
@@ -597,23 +656,27 @@ def _generate_dynamic_starter_code(
     """
     slug = re.sub(r'[^a-zA-Z0-9_-]', '-', title.lower()).strip('-')
 
+    obj_text = objective if objective else f"Hands-on project developing a verified system utilizing {', '.join(tech_stack[:3])}."
+    arch_text = architecture if architecture else f"Clean, modular architecture utilizing {', '.join(tech_stack[:2])} with automated test coverage."
+
     readme = f"""# {title}
 
-> **Target Engineering Role:** {role}  
+> **Target Role:** {role}  
 > **Key Technologies:** {', '.join(tech_stack)}  
-> **Status:** Production-Grade Architecture Scaffold (TDD Harness Green)
+> **Status:** Production-Ready Architecture Scaffold (TDD Harness Green)
 
 ---
 
 ## 1. 🎯 Project Objective
-Engineered to demonstrate enterprise architectural depth and bridge candidate competencies in **{', '.join(tech_stack[:3])}**.
-Includes full asynchronous request handling, structured logging, container health probes, and automated test harnesses.
+{obj_text}
 
 ---
 
 ## 2. 🏗️ Architecture Blueprint
-- **Domain Service Layer**: Clean separation between API routing, service logic, and persistence entities.
-- **Resilience & Validation**: Input sanitization via Pydantic v2 schemas; RFC 7807 compliant error details.
+{arch_text}
+- **Validation & Schemas**: Type-checked input models and structured error handling.
+- **Testing**: Pre-configured automated unit and integration tests with pytest.
+- **Packaging**: Containerized deployment with Dockerfile and docker-compose.
 - **Observability**: Prometheus metrics (`/metrics`) and JSON structured logs.
 
 ---
