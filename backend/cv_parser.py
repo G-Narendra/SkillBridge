@@ -28,7 +28,8 @@ CANONICAL_TAXONOMY: Dict[str, List[str]] = {
         "Docker", "Kubernetes", "Git", "GitHub Actions", "GitLab CI", "Terraform",
         "AWS", "Google Cloud", "Azure", "Linux", "Jenkins", "Ansible", "Helm",
         "Prometheus", "Grafana", "Apache Airflow", "dbt", "Apache Spark",
-        "Apache Kafka", "Nginx", "Postman", "Vite", "Webpack", "Tableau", "Power BI"
+        "Apache Kafka", "Nginx", "Postman", "Vite", "Webpack", "Tableau", "Power BI",
+        "Excel", "CUDA", "CMake", "OpenCV"
     ]
 }
 
@@ -70,6 +71,7 @@ TAXONOMY_ALIASES: Dict[str, str] = {
     "scikit": "Scikit-learn",
     "powerbi": "Power BI",
     "power bi": "Power BI",
+    "power-bi": "Power BI",
     "spark": "Apache Spark",
     "pyspark": "Apache Spark",
     "apache spark": "Apache Spark",
@@ -97,8 +99,28 @@ TAXONOMY_ALIASES: Dict[str, str] = {
     "solidity": "Solidity",
     "bash": "Bash",
     "shell": "Shell",
-    "linux": "Linux"
+    "linux": "Linux",
+    "excel": "Excel",
+    "ms excel": "Excel",
+    "microsoft excel": "Excel",
+    "c++": "C++",
+    "cpp": "C++",
+    "c#": "C#",
+    "csharp": "C#",
+    "cuda": "CUDA",
+    "cmake": "CMake",
+    "opencv": "OpenCV",
+    "tensorrt": "TensorRT"
 }
+
+CANONICAL_SKILL_MAP: Dict[str, str] = {s.lower(): s for cat in CANONICAL_TAXONOMY.values() for s in cat}
+for _a, _c in TAXONOMY_ALIASES.items():
+    CANONICAL_SKILL_MAP[_a.lower()] = _c
+
+def canonicalize_skill(skill_name: str) -> str:
+    """Returns the official canonical representation of a skill name."""
+    cleaned = skill_name.strip()
+    return CANONICAL_SKILL_MAP.get(cleaned.lower(), cleaned)
 
 def extract_text_from_pdf(file_bytes: bytes) -> str:
     """
@@ -179,9 +201,22 @@ def extract_candidate_links(text: str) -> Dict[str, Any]:
         portfolio_url = cand
         break
 
-    # Heuristic for candidate name: look at the top non-blank lines
+    # Heuristic for candidate name: look at the top non-blank lines with delimiter awareness
     lines = [line.strip() for line in text.split("\n") if line.strip()]
-    candidate_name = lines[0] if lines and len(lines[0].split()) <= 4 else None
+    candidate_name = None
+    if lines:
+        for top_line in lines[:3]:
+            # Resumes often format: "First Last | email@domain.com | +1-234-567"
+            segments = [s.strip() for s in re.split(r'[\s]*[|•\t][\s]*', top_line) if s.strip()]
+            first_segment = segments[0] if segments else top_line
+            words = first_segment.split()
+            # Must be 1-4 words, contain no @ or digits, and not be common section headers
+            if 1 <= len(words) <= 4 and not re.search(r'[@\d:]', first_segment):
+                first_lower = first_segment.lower()
+                banned_headers = {"resume", "curriculum", "vitae", "summary", "profile", "contact", "experience", "education", "skills", "projects"}
+                if not any(h in first_lower for h in banned_headers):
+                    candidate_name = first_segment
+                    break
 
     return {
         "name": candidate_name,
@@ -320,24 +355,27 @@ def extract_skills_from_text(text: str) -> Dict[str, List[str]]:
     Returns categorized detected competencies.
     """
     text_lower = text.lower()
-    # Normalize punctuation for token boundary checks
-    normalized_text = " " + re.sub(r'[^a-zA-Z0-9+#.]', ' ', text_lower) + " "
+    # Normalize terminal periods while preserving internal dots (e.g. "node.js" vs "Docker.")
+    cleaned_text = re.sub(r'\.(?=\s|$)', ' ', text_lower)
+    normalized_text = " " + re.sub(r'[^a-zA-Z0-9+#.]', ' ', cleaned_text) + " "
 
     detected_skills_set: Set[str] = set()
+    delim = r'[\s,;:()\[\].]'
 
     # Match aliases first
     for alias, canonical in TAXONOMY_ALIASES.items():
-        pattern = rf'(?:\b|\s){re.escape(alias.lower())}(?:\b|\s)'
+        alias_clean = alias.lower().strip()
+        pattern = rf'(?:(?<={delim})|^){re.escape(alias_clean)}(?=(?:{delim}|$))'
         if re.search(pattern, normalized_text):
-            detected_skills_set.add(canonical)
+            detected_skills_set.add(canonicalize_skill(canonical))
 
     # Match canonical skills across all categories
     for category, skills in CANONICAL_TAXONOMY.items():
         for skill in skills:
-            skill_lower = skill.lower()
-            pattern = rf'(?:\b|\s){re.escape(skill_lower)}(?:\b|\s)'
+            skill_clean = skill.lower().strip()
+            pattern = rf'(?:(?<={delim})|^){re.escape(skill_clean)}(?=(?:{delim}|$))'
             if re.search(pattern, normalized_text):
-                detected_skills_set.add(skill)
+                detected_skills_set.add(canonicalize_skill(skill))
 
     # Structure into categories
     categorized_results: Dict[str, List[str]] = {

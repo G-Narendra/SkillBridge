@@ -11,6 +11,7 @@ except ImportError:
     fuzz = None
     process = None
 from blueprint_generator import generate_production_blueprint_files
+from cv_parser import canonicalize_skill
 
 load_dotenv()
 logger = logging.getLogger("skillbridge.analyzer")
@@ -19,8 +20,8 @@ ROLE_PROFILES: Dict[str, Dict[str, List[str]]] = {
     "Data Analyst": {
         "languages": ["Python", "SQL", "R"],
         "frameworks": ["Pandas", "NumPy", "Scikit-learn"],
-        "databases": ["PostgreSQL", "Snowflake", "BigQuery"],
-        "tools": ["Tableau", "Power BI", "dbt", "Git"]
+        "databases": ["PostgreSQL", "MySQL", "Snowflake", "BigQuery"],
+        "tools": ["Tableau", "Power BI", "Excel", "dbt", "Git"]
     },
     "Backend Engineer": {
         "languages": ["Python", "Go", "Java", "SQL"],
@@ -32,7 +33,7 @@ ROLE_PROFILES: Dict[str, Dict[str, List[str]]] = {
         "languages": ["Python", "C++", "SQL"],
         "frameworks": ["PyTorch", "TensorFlow", "Scikit-learn", "FastAPI"],
         "databases": ["PostgreSQL", "Elasticsearch"],
-        "tools": ["Docker", "Git", "AWS", "Linux"]
+        "tools": ["Docker", "Git", "AWS", "Linux", "CUDA"]
     },
     "AI Engineer": {
         "languages": ["Python", "TypeScript", "SQL"],
@@ -54,9 +55,9 @@ ROLE_PROFILES: Dict[str, Dict[str, List[str]]] = {
     },
     "DevOps Engineer": {
         "languages": ["Python", "Bash", "Go"],
-        "frameworks": ["Node.js"],
-        "databases": ["Redis", "Elasticsearch"],
-        "tools": ["Docker", "Kubernetes", "Terraform", "GitHub Actions", "Ansible", "AWS"]
+        "frameworks": ["FastAPI", "Node.js"],
+        "databases": ["PostgreSQL", "Redis"],
+        "tools": ["Docker", "Kubernetes", "Terraform", "GitHub Actions", "AWS", "Linux", "Prometheus", "Grafana", "Ansible"]
     },
     "Cloud Architect": {
         "languages": ["Python", "Bash", "Go"],
@@ -114,7 +115,9 @@ ROLE_PROFILES: Dict[str, Dict[str, List[str]]] = {
     }
 }
 
-# Dynamically integrate all 465+ roles from the comprehensive skill catalog
+CURATED_CORE_ROLES = set(ROLE_PROFILES.keys())
+
+# Dynamically integrate all 465+ roles from the comprehensive skill catalog without overwriting curated roles
 PROFILES_465_PATH = os.path.join(os.path.dirname(__file__), "role_profiles_465.json")
 if os.path.exists(PROFILES_465_PATH):
     try:
@@ -122,22 +125,59 @@ if os.path.exists(PROFILES_465_PATH):
             _loaded_profiles = json.load(_fp)
             for _rname, _rdata in _loaded_profiles.items():
                 if "categories" in _rdata and _rdata["categories"]:
-                    ROLE_PROFILES[_rname] = _rdata["categories"]
+                    # Canonicalize all skill names
+                    canon_categories = {}
+                    for cat_k, cat_skills in _rdata["categories"].items():
+                        canon_categories[cat_k] = [canonicalize_skill(s) for s in cat_skills]
+                    if _rname not in CURATED_CORE_ROLES:
+                        ROLE_PROFILES[_rname] = canon_categories
                     # Register normalized variants
                     _clean = _rname.replace("Ai ", "AI ").replace(" Ml", " ML").replace("Api ", "API ")
-                    ROLE_PROFILES[_clean] = _rdata["categories"]
+                    if _clean not in CURATED_CORE_ROLES:
+                        ROLE_PROFILES[_clean] = canon_categories
             # Ensure AI Agent Engineer variations map cleanly
             if "Ai Agents Engineer" in ROLE_PROFILES and "AI Agent Engineer" not in ROLE_PROFILES:
                 ROLE_PROFILES["AI Agent Engineer"] = ROLE_PROFILES["Ai Agents Engineer"]
     except Exception as _e:
         logger.warning(f"Failed to load role_profiles_465.json: {_e}")
 
-WEIGHTS: Dict[str, float] = {
+# Standard baseline weights (Faculty Mentor Standard: 40/30/20/10)
+DEFAULT_WEIGHTS: Dict[str, float] = {
     "languages": 0.40,
     "frameworks": 0.30,
     "databases": 0.20,
     "tools": 0.10
 }
+
+DEVOPS_INFRA_WEIGHTS: Dict[str, float] = {
+    "tools": 0.50,
+    "languages": 0.25,
+    "databases": 0.15,
+    "frameworks": 0.10
+}
+
+DATA_ANALYST_WEIGHTS: Dict[str, float] = {
+    "tools": 0.35,
+    "languages": 0.30,
+    "databases": 0.20,
+    "frameworks": 0.15
+}
+
+DATA_ENGINEER_WEIGHTS: Dict[str, float] = {
+    "databases": 0.35,
+    "tools": 0.30,
+    "languages": 0.25,
+    "frameworks": 0.10
+}
+
+WEIGHTS = DEFAULT_WEIGHTS
+
+def get_role_weights(role_name: str) -> Dict[str, float]:
+    """Returns archetype-calibrated tier weights reflecting core discipline realities."""
+    r = role_name.lower().strip()
+    if any(k in r for k in ["devops", "sre", "reliability", "infrastructure", "cloud architect", "systems"]):
+        return DEVOPS_INFRA_WEIGHTS
+    return DEFAULT_WEIGHTS
 
 def is_skill_present(required_skill: str, candidate_skills: List[str], threshold: int = 85) -> bool:
     """
@@ -552,23 +592,25 @@ def analyze_gap(
     all_matched: List[str] = []
     all_missing: List[str] = []
     weighted_total_score = 0.0
+    role_weights = get_role_weights(target_role)
 
     for category, required_list in profile.items():
         matched_in_cat: List[str] = []
         missing_in_cat: List[str] = []
 
         for req in required_list:
-            if is_skill_present(req, candidate_skills):
-                matched_in_cat.append(req)
-                all_matched.append(req)
+            canon_req = canonicalize_skill(req)
+            if is_skill_present(canon_req, candidate_skills):
+                matched_in_cat.append(canon_req)
+                all_matched.append(canon_req)
             else:
-                missing_in_cat.append(req)
-                all_missing.append(req)
+                missing_in_cat.append(canon_req)
+                all_missing.append(canon_req)
 
         count_total = len(required_list)
         count_matched = len(matched_in_cat)
         cat_pct = round((count_matched / count_total * 100)) if count_total > 0 else 100
-        category_weight = WEIGHTS.get(category, 0.25)
+        category_weight = role_weights.get(category, 0.25)
         weighted_total_score += (cat_pct * category_weight)
 
         category_breakdown[category] = {
@@ -587,8 +629,21 @@ def analyze_gap(
         }
 
     overall_match_percentage = min(max(round(weighted_total_score), 0), 100)
-    all_matched = sorted(list(set(all_matched)))
-    all_missing = sorted(list(set(all_missing)))
+
+    # Strictly deduplicate using canonical form
+    def _dedup_canonical(skills: List[str]) -> List[str]:
+        seen = set()
+        res = []
+        for s in skills:
+            c = canonicalize_skill(s)
+            if c.lower() not in seen:
+                seen.add(c.lower())
+                res.append(c)
+        return sorted(res)
+
+    all_matched = _dedup_canonical(all_matched)
+    matched_lower = {m.lower() for m in all_matched}
+    all_missing = _dedup_canonical([s for s in all_missing if s.lower() not in matched_lower])
 
     # Mathematical Euclidean Competency Deficit: Delta = sum(w_k * max(0, d_k - s_k))
     # where d_k = 100.0 (full required competency) and s_k = candidate score percentage
@@ -600,7 +655,7 @@ def analyze_gap(
         s_k = float(bdown["percentage"])
         d_k = 100.0
         diff = max(0.0, d_k - s_k)
-        w_k = WEIGHTS.get(category, 0.25)
+        w_k = role_weights.get(category, 0.25)
         cat_deficit = round(w_k * diff, 2)
         category_deficits[category] = cat_deficit
         deficit_delta += cat_deficit
@@ -613,7 +668,7 @@ def analyze_gap(
     competency_gaps: List[Dict[str, Any]] = []
     for category, bdown in category_breakdown.items():
         tier_label = bdown.get("tier_label", category.title())
-        weight = WEIGHTS.get(category, 0.25)
+        weight = role_weights.get(category, 0.25)
         for missing_s in bdown.get("missing", []):
             priority = "CRITICAL" if weight >= 0.35 else "HIGH" if weight >= 0.25 else "MEDIUM"
             competency_gaps.append({
@@ -635,7 +690,7 @@ def analyze_gap(
         "comparison_source": "Aggregated from verified Tier-1 technical engineering job postings and competence rubrics",
         "percentile_threshold": 80,
         "required_distribution": profile,
-        "tier_weights": WEIGHTS
+        "tier_weights": role_weights
     }
 
     # Try LLM first, falling back to deterministic generator
