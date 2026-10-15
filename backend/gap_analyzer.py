@@ -34,10 +34,10 @@ ROLE_PROFILES: Dict[str, Dict[str, List[str]]] = {
         "tools": ["Tableau", "Power BI", "Excel", "dbt", "Git"]
     },
     "Backend Engineer": {
-        "languages": ["Python", "Go", "Java", "SQL"],
+        "languages": ["Python", "SQL", "Go", "Java"],
         "frameworks": ["FastAPI", "Django", "Express", "Node.js"],
-        "databases": ["PostgreSQL", "Redis", "MongoDB"],
-        "tools": ["Docker", "Kubernetes", "Git", "AWS"]
+        "databases": ["PostgreSQL", "Redis", "MongoDB", "SQLite"],
+        "tools": ["Git", "Docker", "Linux", "Kubernetes", "AWS"]
     },
     "Machine Learning Engineer": {
         "languages": ["Python", "C++", "SQL"],
@@ -551,7 +551,7 @@ def analyze_gap(
     candidate_skills: List[str],
     target_role: str,
     custom_job_description: Optional[str] = None,
-    experience_years: int = 1
+    experience_years: int = 3
 ) -> Dict[str, Any]:
     """
     Evaluates candidate skills against the role taxonomy or custom requirements using weighted formula.

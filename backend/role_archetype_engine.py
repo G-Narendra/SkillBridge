@@ -53,7 +53,7 @@ ARCHETYPE_REGISTRY: Dict[str, Dict[str, Any]] = {
                 "label": "Core Systems Languages",
                 "weight": 0.30,
                 "icon": "code",
-                "default_skills": ["Python", "Go", "Java", "SQL", "C++", "Rust"]
+                "default_skills": ["Python", "SQL", "Go", "Java", "C++", "Rust"]
             },
             "service_frameworks": {
                 "label": "Microservice Frameworks & APIs",
@@ -65,13 +65,13 @@ ARCHETYPE_REGISTRY: Dict[str, Dict[str, Any]] = {
                 "label": "Databases, Caching & Storage",
                 "weight": 0.25,
                 "icon": "database",
-                "default_skills": ["PostgreSQL", "Redis", "MongoDB", "MySQL", "Elasticsearch"]
+                "default_skills": ["PostgreSQL", "Redis", "MongoDB", "SQLite", "MySQL"]
             },
             "infra_deployment": {
                 "label": "Containerization & Cloud Infra",
                 "weight": 0.20,
                 "icon": "wrench",
-                "default_skills": ["Docker", "Kubernetes", "Git", "AWS", "Linux"]
+                "default_skills": ["Git", "Docker", "Linux", "Kubernetes", "AWS"]
             }
         }
     },
@@ -581,11 +581,11 @@ def build_dynamic_role_profile(
             dynamic_profile[dim_key] = list(dict.fromkeys(dim_cfg["default_skills"]))
 
     # 3. Experience-Tier Calibration:
-    # If candidate is a Fresher (<= 1 year), benchmark against core foundational skills (top 2-3 per dimension)
+    # If candidate is a Fresher (<= 1 year), benchmark against core foundational skills (top 2 per dimension)
     if experience_years <= 1:
         for dim_key in dynamic_profile:
             skills = dynamic_profile[dim_key]
-            if len(skills) > 3:
-                dynamic_profile[dim_key] = skills[:3]
+            if len(skills) > 2:
+                dynamic_profile[dim_key] = skills[:2]
 
     return dynamic_profile, dynamic_weights, archetype
