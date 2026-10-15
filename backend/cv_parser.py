@@ -353,7 +353,7 @@ def detect_experience_years(text: str) -> int:
             if not re.search(r'\b(?:senior|lead|principal|architect|manager|staff)\b', text_lower):
                 return 0
 
-    # 2. Check for explicit phrase: "<N>+ years of experience" or "<N> years experience"
+    # 2. Check for explicit phrase: "<N>+ years of experience" or "<N> years experience" or "experience: ... (N years)"
     exp_phrase_match = re.search(r'(?:over\s+|more\s+than\s+)?(\d+(?:\.\d+)?)\+?\s*(?:years?|yrs?)(?:\s+of)?\s+(?:professional\s+|work\s+)?experience', text_lower)
     if exp_phrase_match:
         try:
@@ -361,6 +361,17 @@ def detect_experience_years(text: str) -> int:
             if val < 1:
                 return 0
             return int(round(val))
+        except ValueError:
+            pass
+
+    # Check for "experience: ... (N years)" or "experience: N years"
+    exp_inline_match = re.search(r'(?:experience|employment)\s*:\s*(?:.*?\()?\s*(\d+)\s*(?:years?|yrs?)\)?', text_lower)
+    if exp_inline_match:
+        try:
+            val = int(exp_inline_match.group(1))
+            if val < 1:
+                return 0
+            return val
         except ValueError:
             pass
 
@@ -409,7 +420,7 @@ def detect_experience_years(text: str) -> int:
         elif exp_header.match(cleaned_line):
             in_experience = True
             in_education = False
-            continue
+            # Don't skip this line: header line might contain dates like "Experience: 2020 - 2026"
         elif section_break.match(cleaned_line) and len(cleaned_line) < 40:
             in_education = False
             in_experience = False
@@ -419,7 +430,7 @@ def detect_experience_years(text: str) -> int:
         if in_education:
             continue
 
-        # If the line mentions university, degree, b.tech, etc., skip it
+        # If the line mentions university, degree, b.tech, etc., skip it unless explicitly inside work experience
         if edu_indicators.search(cleaned_line) and not in_experience:
             continue
 
@@ -442,11 +453,10 @@ def detect_experience_years(text: str) -> int:
             return 0
         return min(max_span, 25)
 
-    # 5. Check if candidate has an education section with recent/future graduation and no exp section
-    edu_years = re.findall(r'\b(20[1-2][0-9])\b', text)
-    if edu_years:
-        max_year = max(int(y) for y in edu_years)
-        if max_year >= 2024:
+    # 5. Check if candidate has an explicit future/current education graduation and zero work ranges
+    if re.search(r'\b(?:education|b\.?tech|degree|college|university)\b', text_lower):
+        edu_future = re.findall(r'\b(202[4-9])\b', text)
+        if edu_future and not work_date_ranges:
             return 0
 
     # 6. Fallback for entry-level candidates
