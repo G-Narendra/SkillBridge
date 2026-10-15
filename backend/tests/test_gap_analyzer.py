@@ -10,18 +10,44 @@ def test_role_profiles_count():
         assert "tools" in categories
 
 def test_weighted_score_calculation():
-    # Only languages matched: 100% of languages * 0.40 = 40%
+    # Role-calibrated dimensions for Data Analyst: query_languages (35%), data_manipulation (25%), warehouses_modeling (25%), bi_visualization (15%)
     data_analyst_languages = ROLE_PROFILES["Data Analyst"]["languages"]
     result = analyze_gap(data_analyst_languages, "Data Analyst")
-    assert result["category_breakdown"]["languages"]["percentage"] == 100
-    assert result["category_breakdown"]["frameworks"]["percentage"] == 0
-    assert result["category_breakdown"]["databases"]["percentage"] == 0
-    assert result["category_breakdown"]["tools"]["percentage"] == 0
-    assert result["match_percentage"] == 40
-    # Deficit Delta: 60% deficit when 40% matched
-    assert result["competency_deficit_delta"] == 60.0
+    assert result["category_breakdown"]["query_languages"]["percentage"] == 100
+    assert result["category_breakdown"]["data_manipulation"]["percentage"] == 0
+    assert result["category_breakdown"]["warehouses_modeling"]["percentage"] == 0
+    assert result["category_breakdown"]["bi_visualization"]["percentage"] == 0
+    assert result["match_percentage"] == 35
+    # Deficit Delta: 65% deficit when 35% matched
+    assert result["competency_deficit_delta"] == 65.0
     assert result["euclidean_distance"] > 0.0
     assert "Delta = sum(w_k * max(0, d_k - s_k))" in result["deficit_formula"]
+    assert len(result["dimensions"]) == 4
+    assert result["archetype_metadata"]["id"] == "data_analytics"
+
+def test_role_based_archetype_frontend_omits_databases():
+    # Frontend candidates must NOT be penalized for databases (weight 0.0, omitted)
+    frontend_skills = ["TypeScript", "JavaScript", "HTML", "CSS", "React", "Next.js", "Tailwind CSS", "Redux"]
+    result = analyze_gap(frontend_skills, "Frontend Engineer")
+    arch = result["archetype_metadata"]
+    assert arch["id"] == "frontend_ui"
+    assert "Databases" in arch["omitted_metrics"][0]
+    assert result["category_breakdown"]["databases"]["is_omitted"] is True
+    assert result["category_breakdown"]["databases"]["weight"] == 0.0
+    # Match percentage should be high without having any database skills
+    assert result["match_percentage"] >= 80
+
+def test_role_based_archetype_devops_calibrated_weights():
+    # DevOps engineers should have heavy weights on Cloud/IaC & Containers, not web frameworks
+    devops_skills = ["Docker", "Kubernetes", "Linux", "Bash", "Terraform", "AWS", "Prometheus", "Grafana", "GitHub Actions"]
+    result = analyze_gap(devops_skills, "DevOps Engineer")
+    arch = result["archetype_metadata"]
+    assert arch["id"] == "devops_platform"
+    assert "Web Frontend Frameworks" in arch["omitted_metrics"]
+    weights = result["dimension_weights"]
+    assert weights["iac_cloud"] >= 0.30
+    assert weights["container_orchestration"] >= 0.30
+    assert result["match_percentage"] >= 75
 
 def test_perfect_match_score():
     all_skills = []
@@ -58,7 +84,7 @@ def test_senior_standing_suppresses_forced_projects():
         backend_skills["languages"] +
         backend_skills["frameworks"] +
         backend_skills["databases"] +
-        ["Docker"] # missing only AWS/Git from tools
+        ["Docker", "Git", "AWS"] # missing only Linux/Kubernetes from infra
     )
     result = analyze_gap(candidate_skills, "Backend Engineer")
     assert result["match_percentage"] >= 90

@@ -3,59 +3,72 @@
 import React, { useState, useEffect } from "react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from "recharts";
 
-interface CategoryBreakdownItem {
+export interface DimensionItem {
+  id: string;
+  label: string;
+  icon?: string;
+  weight: number;
   percentage: number;
   matched?: string[];
   missing?: string[];
+  total_required?: number;
+}
+
+export interface CategoryBreakdownItem {
+  tier_label?: string;
+  label?: string;
+  percentage: number;
+  weight?: number;
+  matched?: string[];
+  missing?: string[];
+  is_omitted?: boolean;
 }
 
 interface CategoryChartProps {
-  breakdown?: {
-    languages?: CategoryBreakdownItem;
-    frameworks?: CategoryBreakdownItem;
-    databases?: CategoryBreakdownItem;
-    tools?: CategoryBreakdownItem;
-  };
+  dimensions?: DimensionItem[];
+  breakdown?: Record<string, CategoryBreakdownItem>;
   isDark?: boolean;
 }
 
-export function CategoryChart({ breakdown = {}, isDark = true }: CategoryChartProps) {
+export function CategoryChart({ dimensions, breakdown = {}, isDark = true }: CategoryChartProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const data = [
-    {
-      category: "Languages",
-      percentage: breakdown?.languages?.percentage ?? 0,
-      weight: "40%",
-      matched: breakdown?.languages?.matched?.length ?? 0,
-      missing: breakdown?.languages?.missing?.length ?? 0,
-    },
-    {
-      category: "Frameworks",
-      percentage: breakdown?.frameworks?.percentage ?? 0,
-      weight: "30%",
-      matched: breakdown?.frameworks?.matched?.length ?? 0,
-      missing: breakdown?.frameworks?.missing?.length ?? 0,
-    },
-    {
-      category: "Databases",
-      percentage: breakdown?.databases?.percentage ?? 0,
-      weight: "20%",
-      matched: breakdown?.databases?.matched?.length ?? 0,
-      missing: breakdown?.databases?.missing?.length ?? 0,
-    },
-    {
-      category: "Tools",
-      percentage: breakdown?.tools?.percentage ?? 0,
-      weight: "10%",
-      matched: breakdown?.tools?.matched?.length ?? 0,
-      missing: breakdown?.tools?.missing?.length ?? 0,
-    },
-  ];
+  const data = React.useMemo(() => {
+    if (dimensions && dimensions.length > 0) {
+      return dimensions.map((d) => ({
+        category: d.label,
+        percentage: d.percentage ?? 0,
+        weight: `${Math.round((d.weight || 0.25) * 100)}%`,
+        matched: d.matched?.length ?? 0,
+        missing: d.missing?.length ?? 0,
+      }));
+    }
+
+    const items = Object.entries(breakdown)
+      .filter(([_, item]) => !item?.is_omitted)
+      .map(([key, item]) => ({
+        category: item.tier_label || item.label || key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+        percentage: item.percentage ?? 0,
+        weight: item.weight ? `${Math.round(item.weight * 100)}%` : "25%",
+        matched: item.matched?.length ?? 0,
+        missing: item.missing?.length ?? 0,
+      }));
+
+    if (items.length > 0) {
+      return items;
+    }
+
+    return [
+      { category: "Languages", percentage: 0, weight: "40%", matched: 0, missing: 0 },
+      { category: "Frameworks", percentage: 0, weight: "30%", matched: 0, missing: 0 },
+      { category: "Databases", percentage: 0, weight: "20%", matched: 0, missing: 0 },
+      { category: "Tools", percentage: 0, weight: "10%", matched: 0, missing: 0 },
+    ];
+  }, [dimensions, breakdown]);
 
   if (!mounted) {
     return (
@@ -77,7 +90,7 @@ export function CategoryChart({ breakdown = {}, isDark = true }: CategoryChartPr
             fontSize={11}
             tickLine={false}
             axisLine={false}
-            width={75}
+            width={85}
           />
           <Tooltip
             content={({ active, payload }) => {
@@ -85,10 +98,18 @@ export function CategoryChart({ breakdown = {}, isDark = true }: CategoryChartPr
                 const item = payload[0].payload;
                 return (
                   <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] p-3 text-xs shadow-xl">
-                    <p className="font-semibold text-slate-900 dark:text-white">{item.category} ({item.weight} weight)</p>
-                    <p className="text-slate-600 dark:text-slate-300 mt-1 font-mono tabular-nums">Coverage: {item.percentage}%</p>
-                    <p className="text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">Verified: {item.matched}</p>
-                    <p className="text-rose-600 dark:text-rose-400 font-mono tabular-nums">Gaps: {item.missing}</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">
+                      {item.category} ({item.weight} weight)
+                    </p>
+                    <p className="text-slate-600 dark:text-slate-300 mt-1 font-mono tabular-nums">
+                      Coverage: {item.percentage}%
+                    </p>
+                    <p className="text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">
+                      Verified: {item.matched}
+                    </p>
+                    <p className="text-rose-600 dark:text-rose-400 font-mono tabular-nums">
+                      Gaps: {item.missing}
+                    </p>
                   </div>
                 );
               }

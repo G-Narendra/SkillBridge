@@ -52,10 +52,10 @@ class BlueprintCacheManager:
         except Exception:
             pass
 
-    def compute_key(self, role: str, missing_skills: List[str], project_index: int) -> str:
+    def compute_key(self, role: str, missing_skills: List[str], project_index: int, is_freshman: bool = False) -> str:
         clean_role = role.strip().lower()
         clean_skills = ":".join(sorted([s.strip().lower() for s in missing_skills]))
-        raw = f"{clean_role}|{clean_skills}|{project_index}"
+        raw = f"v2|{clean_role}|{clean_skills}|{project_index}|{'freshman' if is_freshman else 'standard'}"
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
     def get(self, key: str) -> Optional[Dict[str, Any]]:
@@ -199,16 +199,27 @@ def synthesize_dynamic_blueprints(
 
     blueprints: List[Dict[str, Any]] = []
 
+    # If freshman or candidate has <= 2 matched skills, scaffold a beginner stepping stone first
+    is_freshman = len(matched_skills) <= 2
+    first_track = {
+        "track": "Foundational Stepping Stone & Test Suite",
+        "lead_skills": matched_skills[:1] or langs[:1] or ["Python"],
+        "complement_skills": [s for s in missing_skills if s in ["SQLite", "pytest", "Git", "SQL"]] or missing_skills[:2],
+        "difficulty": "Beginner",
+        "hours": 16,
+        "theme_template": "Foundational {primary} Architecture & Automated Testing Suite"
+    } if is_freshman else {
+        "track": "Data & Persistence Architecture",
+        "lead_skills": dbs or ["PostgreSQL"],
+        "complement_skills": fws[:2] or ["FastAPI", "SQL"],
+        "difficulty": "Intermediate",
+        "hours": 28,
+        "theme_template": "High-Throughput {primary} Analytics & Persistence Engine"
+    }
+
     # Project Archetype Definitions tailored dynamically to missing clusters
     archetypes = [
-        {
-            "track": "Data & Persistence Architecture",
-            "lead_skills": dbs or ["PostgreSQL"],
-            "complement_skills": fws[:2] or ["FastAPI", "SQL"],
-            "difficulty": "Intermediate",
-            "hours": 28,
-            "theme_template": "High-Throughput {primary} Analytics & Persistence Engine"
-        },
+        first_track,
         {
             "track": "Core Service & Application Layer",
             "lead_skills": fws or langs or ["FastAPI"],
@@ -237,7 +248,7 @@ def synthesize_dynamic_blueprints(
 
     for idx, arch in enumerate(archetypes, 1):
         # 1. Compute Cache Key
-        cache_key = blueprint_cache.compute_key(target_role, missing_skills, idx)
+        cache_key = blueprint_cache.compute_key(target_role, missing_skills, idx, is_freshman=is_freshman)
         start_time = time.time()
         
         # 2. Check Cache

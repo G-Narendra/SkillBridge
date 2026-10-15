@@ -17,6 +17,11 @@ from dynamic_project_engine import (
     evaluate_senior_standing,
     blueprint_cache
 )
+from role_archetype_engine import (
+    build_dynamic_role_profile,
+    get_role_archetype_definition,
+    ARCHETYPE_REGISTRY
+)
 
 load_dotenv()
 logger = logging.getLogger("skillbridge.analyzer")
@@ -179,10 +184,9 @@ WEIGHTS = DEFAULT_WEIGHTS
 
 def get_role_weights(role_name: str) -> Dict[str, float]:
     """Returns archetype-calibrated tier weights reflecting core discipline realities."""
-    r = role_name.lower().strip()
-    if any(k in r for k in ["devops", "sre", "reliability", "infrastructure", "cloud architect", "systems"]):
-        return DEVOPS_INFRA_WEIGHTS
-    return DEFAULT_WEIGHTS
+    archetype = get_role_archetype_definition(role_name)
+    weights = {k: v["weight"] for k, v in archetype["dimensions"].items()}
+    return weights
 
 def is_skill_present(required_skill: str, candidate_skills: List[str], threshold: int = 85) -> bool:
     """
@@ -593,13 +597,14 @@ def analyze_gap(
                 "tools": ["Docker", "Git", "Linux", "AWS"]
             }
 
+    dynamic_profile, dynamic_weights, archetype_meta = build_dynamic_role_profile(target_role, profile)
+
     category_breakdown: Dict[str, Dict[str, Any]] = {}
     all_matched: List[str] = []
     all_missing: List[str] = []
     weighted_total_score = 0.0
-    role_weights = get_role_weights(target_role)
 
-    for category, required_list in profile.items():
+    for dim_key, required_list in dynamic_profile.items():
         matched_in_cat: List[str] = []
         missing_in_cat: List[str] = []
 
@@ -615,22 +620,24 @@ def analyze_gap(
         count_total = len(required_list)
         count_matched = len(matched_in_cat)
         cat_pct = round((count_matched / count_total * 100)) if count_total > 0 else 100
-        category_weight = role_weights.get(category, 0.25)
+        category_weight = dynamic_weights.get(dim_key, 0.25)
         weighted_total_score += (cat_pct * category_weight)
 
-        category_breakdown[category] = {
-            "tier_label": {
-                "languages": "Languages",
-                "frameworks": "Frameworks",
-                "databases": "Databases",
-                "tools": "Tools & Infrastructure",
-                "tools_infrastructure": "Tools & Infrastructure"
-            }.get(category, category.title()),
+        dim_cfg = archetype_meta.get("dimensions", {}).get(dim_key, {})
+        dim_label = dim_cfg.get("label", dim_key.replace("_", " ").title())
+        dim_icon = dim_cfg.get("icon", "code")
+
+        category_breakdown[dim_key] = {
+            "tier_label": dim_label,
+            "label": dim_label,
+            "icon": dim_icon,
+            "dimension_id": dim_key,
             "matched": matched_in_cat,
             "missing": missing_in_cat,
             "percentage": cat_pct,
             "total_required": count_total,
-            "weight": category_weight
+            "weight": category_weight,
+            "is_omitted": False
         }
 
     overall_match_percentage = min(max(round(weighted_total_score), 0), 100)
@@ -650,52 +657,98 @@ def analyze_gap(
     matched_lower = {m.lower() for m in all_matched}
     all_missing = _dedup_canonical([s for s in all_missing if s.lower() not in matched_lower])
 
-    # Mathematical Euclidean Competency Deficit: Delta = sum(w_k * max(0, d_k - s_k))
-    # where d_k = 100.0 (full required competency) and s_k = candidate score percentage
-    deficit_delta = 0.0
+    # Dynamic Dimensions List for Modern Role-Calibrated UI & Mathematical Precision
+    dimensions_list: List[Dict[str, Any]] = []
     category_deficits: Dict[str, float] = {}
     euclidean_squared_sum = 0.0
+    deficit_delta = 0.0
 
-    for category, bdown in category_breakdown.items():
-        s_k = float(bdown["percentage"])
-        d_k = 100.0
-        diff = max(0.0, d_k - s_k)
-        w_k = role_weights.get(category, 0.25)
-        cat_deficit = round(w_k * diff, 2)
-        category_deficits[category] = cat_deficit
-        deficit_delta += cat_deficit
-        euclidean_squared_sum += (w_k * (diff / 100.0)) ** 2
+    for dim_key, dim_cfg in archetype_meta.get("dimensions", {}).items():
+        if dim_key in category_breakdown:
+            bdown = category_breakdown[dim_key]
+            s_k = float(bdown["percentage"])
+            d_k = 100.0
+            diff = max(0.0, d_k - s_k)
+            w_k = bdown["weight"]
+            cat_deficit = round(w_k * diff, 2)
+            category_deficits[dim_key] = cat_deficit
+            deficit_delta += cat_deficit
+            euclidean_squared_sum += (w_k * (diff / 100.0)) ** 2
+
+            dimensions_list.append({
+                "id": dim_key,
+                "label": bdown["tier_label"],
+                "icon": bdown.get("icon", "code"),
+                "weight": bdown["weight"],
+                "percentage": bdown["percentage"],
+                "matched": bdown["matched"],
+                "missing": bdown["missing"],
+                "total_required": bdown["total_required"],
+                "deficit": cat_deficit
+            })
 
     euclidean_distance = round((euclidean_squared_sum ** 0.5), 4)
     deficit_delta = round(deficit_delta, 1)
 
     # Granular Competency Gaps with Pedagogical Invariants
     competency_gaps: List[Dict[str, Any]] = []
-    for category, bdown in category_breakdown.items():
-        tier_label = bdown.get("tier_label", category.title())
-        weight = role_weights.get(category, 0.25)
-        for missing_s in bdown.get("missing", []):
+    for dim in dimensions_list:
+        dim_id = dim["id"]
+        dim_label = dim["label"]
+        weight = dim["weight"]
+        for missing_s in dim.get("missing", []):
             priority = "CRITICAL" if weight >= 0.35 else "HIGH" if weight >= 0.25 else "MEDIUM"
             competency_gaps.append({
                 "skill": missing_s,
-                "tier": category,
-                "tier_label": tier_label,
+                "tier": dim_id,
+                "tier_label": dim_label,
                 "current_proficiency": 0.0,
                 "required_benchmark": 85.0,
                 "deficit_delta": 85.0,
                 "priority": priority,
-                "pedagogical_reasoning": generate_pedagogical_reasoning(missing_s, category, target_role),
+                "pedagogical_reasoning": generate_pedagogical_reasoning(missing_s, dim_id, target_role),
                 "actionable_recommendation": f"Scaffold skeleton project with {missing_s} test harness to establish verifiable evidence."
             })
 
+    # Backward compatibility helper: Map standard 4-tier aliases into category_breakdown if missing
+    dim_keys = list(dynamic_profile.keys())
+    if "languages" not in category_breakdown and len(dim_keys) > 0:
+        category_breakdown["languages"] = category_breakdown[dim_keys[0]]
+    if "frameworks" not in category_breakdown and len(dim_keys) > 1:
+        category_breakdown["frameworks"] = category_breakdown[dim_keys[1]]
+    if "databases" not in category_breakdown:
+        db_dim = next((k for k in dim_keys if any(x in k for x in ["data", "db", "warehouse", "store", "persistence"])), None)
+        if db_dim:
+            category_breakdown["databases"] = category_breakdown[db_dim]
+        else:
+            category_breakdown["databases"] = {
+                "tier_label": "Databases (Omitted for this Role)",
+                "label": "Databases (Omitted)",
+                "icon": "database",
+                "dimension_id": "databases",
+                "matched": [],
+                "missing": [],
+                "percentage": 100,
+                "total_required": 0,
+                "weight": 0.0,
+                "is_omitted": True,
+                "rationale": f"Databases are omitted for {archetype_meta.get('name')} as irrelevant to primary competency."
+            }
+    if "tools" not in category_breakdown and len(dim_keys) > 2:
+        category_breakdown["tools"] = category_breakdown[dim_keys[-1]]
+
     # Transparent Benchmark Standard
     benchmark_standard = {
-        "standard_name": f"Tier-1 Tech Mid-Level {target_role} Industry Baseline",
+        "standard_name": f"Tier-1 Tech Mid-Level {target_role} Industry Baseline ({archetype_meta.get('name')})",
         "sample_size": "Aggregated from 5,420+ Tier-1 Tech Job Descriptions",
         "comparison_source": "Aggregated from verified Tier-1 technical engineering job postings and competence rubrics",
         "percentile_threshold": 80,
-        "required_distribution": profile,
-        "tier_weights": role_weights
+        "required_distribution": dynamic_profile,
+        "tier_weights": dynamic_weights,
+        "archetype_id": archetype_meta.get("id"),
+        "archetype_name": archetype_meta.get("name"),
+        "archetype_rationale": archetype_meta.get("rationale"),
+        "omitted_metrics": archetype_meta.get("omitted_metrics", [])
     }
 
     # 1. Evaluate Senior Standing (High-Competence Candidate)
@@ -774,6 +827,14 @@ def analyze_gap(
 
     return {
         "target_role": target_role,
+        "archetype_metadata": {
+            "id": archetype_meta.get("id"),
+            "name": archetype_meta.get("name"),
+            "rationale": archetype_meta.get("rationale"),
+            "omitted_metrics": archetype_meta.get("omitted_metrics", [])
+        },
+        "dimensions": dimensions_list,
+        "dimension_weights": dynamic_weights,
         "match_percentage": overall_match_percentage,
         "is_senior_qualified": senior_standing.get("is_senior_qualified", False),
         "senior_standing": senior_standing,

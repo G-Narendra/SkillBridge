@@ -15,6 +15,7 @@ from gap_analyzer import analyze_gap, ROLE_PROFILES
 from github_provisioner import provision_repository
 from jev_classifier import classify_document
 from dynamic_project_engine import blueprint_cache, synthesize_dynamic_blueprints
+from role_archetype_engine import ARCHETYPE_REGISTRY, get_role_archetype_definition
 
 load_dotenv()
 
@@ -90,6 +91,27 @@ async def get_available_roles():
         })
     return {"roles": roles_list}
 
+@app.get("/api/archetypes")
+async def get_all_archetypes_endpoint():
+    """
+    Returns all 12 Engineering Disciplines / Archetypes with their role-calibrated dimensions, weights, and rationales.
+    """
+    return {
+        "count": len(ARCHETYPE_REGISTRY),
+        "archetypes": ARCHETYPE_REGISTRY
+    }
+
+@app.get("/api/archetypes/{role_name}")
+async def get_role_archetype_endpoint(role_name: str):
+    """
+    Returns the specific archetype definition, calibrated dimensions, and omitted metrics for a role.
+    """
+    arch = get_role_archetype_definition(role_name)
+    return {
+        "target_role": role_name,
+        "archetype": arch
+    }
+
 @app.post("/api/resume/parse")
 async def parse_and_analyze_resume(
     file: UploadFile = File(..., description="Candidate PDF resume document"),
@@ -141,6 +163,9 @@ async def parse_and_analyze_resume(
         "detected_skills": candidate_skills,
         "categorized_skills": parsed_resume["categorized_skills"],
         "target_role": target_job,
+        "archetype_metadata": gap_result.get("archetype_metadata", {}),
+        "dimensions": gap_result.get("dimensions", []),
+        "dimension_weights": gap_result.get("dimension_weights", {}),
         "match_percentage": gap_result["match_percentage"],
         "competency_deficit_delta": gap_result.get("competency_deficit_delta", 0.0),
         "category_deficits": gap_result.get("category_deficits", {}),

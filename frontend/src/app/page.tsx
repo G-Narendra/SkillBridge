@@ -995,6 +995,17 @@ Generated: ${new Date().toISOString()}
                       </span>
                     </div>
                   )}
+
+                  {/* Dynamic Dimension Distribution Bar Chart */}
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 block mb-1">
+                      Calibrated Dimension Balance
+                    </span>
+                    <CategoryChart
+                      dimensions={analysis.dimensions}
+                      breakdown={analysis.category_breakdown}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -1076,9 +1087,11 @@ Generated: ${new Date().toISOString()}
                     deficitDelta={analysis.competency_deficit_delta ?? 0}
                   />
 
-                  {/* 4-Tier Granular Capability Grid (Languages, Frameworks, Databases, Tools & Infra) */}
+                  {/* Role-Calibrated Granular Capability Grid (Discipline-Tuned Metrics) */}
                   <GranularCapabilityGrid
+                    dimensions={analysis.dimensions || []}
                     breakdown={analysis.category_breakdown || {}}
+                    archetypeMetadata={analysis.archetype_metadata}
                   />
 
                   {/* High-Density Gap Diagnostic Matrix (Zero-Slop Engineering Table) */}
