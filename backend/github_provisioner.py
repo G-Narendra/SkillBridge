@@ -428,7 +428,9 @@ def provision_repository_github(
     return {
         "status": "success",
         "provider": "github",
-        "repo_url": repo.html_url,
+        "repo_url": repo.html_url or f"https://github.com/{user_login}/{target_name}",
+        "html_url": repo.html_url or f"https://github.com/{user_login}/{target_name}",
+        "url": repo.html_url or f"https://github.com/{user_login}/{target_name}",
         "repo_name": target_name,
         "commit_hash": last_commit_sha or "main",
         "commit_message": initial_commit_msg,

@@ -666,12 +666,25 @@ export default function Home() {
         provisionData = retryRes.data;
       }
 
-      if (provisionData && (provisionData.status === "success" || provisionData.repo_url)) {
+      if (provisionData && (provisionData.status === "success" || provisionData.repo_url || provisionData.html_url)) {
+        const normalizedRepoUrl = (
+          provisionData.repo_url ||
+          provisionData.html_url ||
+          provisionData.url ||
+          ""
+        ).trim();
+        const safeResult = {
+          ...provisionData,
+          repo_url: normalizedRepoUrl,
+          repo_name: provisionData.repo_name || provisionData.name || selectedBlueprint.title,
+          commit_hash: provisionData.commit_hash || provisionData.sha || "main",
+          issues_count: provisionData.issues_created?.length || provisionData.issues_count || 4
+        };
         setProvisioningState({
           status: "success",
           step: 4,
           message: "Repository successfully provisioned and milestone issues populated on GitHub.",
-          result: provisionData
+          result: safeResult
         });
       } else {
         throw new Error(provisionData?.error || "Remote platform did not return repository details.");
@@ -1446,13 +1459,13 @@ Generated: ${new Date().toISOString()}
                 </div>
 
                 <div className="space-y-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1e293b]/60 p-4 text-xs font-mono">
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <span className="text-slate-500">Repository:</span>
-                    {provisioningState.result?.repo_url ? (
+                    {provisioningState.result?.repo_url && provisioningState.result.repo_url.startsWith("http") ? (
                       <a
                         href={provisioningState.result.repo_url}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="text-[#0071e3] hover:underline flex items-center font-medium"
                       >
                         {provisioningState.result.repo_name || "View on GitHub"}
@@ -1491,10 +1504,14 @@ Generated: ${new Date().toISOString()}
                   </Button>
                   <Button
                     size="sm"
-                    disabled={!provisioningState.result?.repo_url}
+                    disabled={
+                      !provisioningState.result?.repo_url ||
+                      !provisioningState.result.repo_url.startsWith("http")
+                    }
                     onClick={() => {
-                      if (provisioningState.result?.repo_url) {
-                        window.open(provisioningState.result.repo_url, "_blank");
+                      const targetUrl = provisioningState.result?.repo_url;
+                      if (targetUrl && (targetUrl.startsWith("http://") || targetUrl.startsWith("https://"))) {
+                        window.open(targetUrl, "_blank", "noopener,noreferrer");
                       }
                     }}
                   >

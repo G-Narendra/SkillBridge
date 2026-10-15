@@ -300,7 +300,16 @@ if __name__ == "__main__":
 """
 
     config_py = """import os
-from pydantic_settings import BaseSettings
+try:
+    from pydantic_settings import BaseSettings
+except ImportError:
+    try:
+        from pydantic import BaseSettings
+    except ImportError:
+        from pydantic import BaseModel
+        class BaseSettings(BaseModel):
+            class Config:
+                extra = "allow"
 
 class Settings(BaseSettings):
     APP_NAME: str = "Automated Workflow Engine"
@@ -870,7 +879,19 @@ build/
         "src/utils/__init__.py": "",
         "src/utils/logger.py": logger_py,
         "tests/__init__.py": "",
-        "tests/conftest.py": "# Pytest root fixtures\n",
+        "tests/conftest.py": """import sys
+from pathlib import Path
+root = str(Path(__file__).resolve().parent.parent)
+if root not in sys.path:
+    sys.path.insert(0, root)
+""",
+        "pytest.ini": """[pytest]
+asyncio_mode = auto
+markers =
+    asyncio: mark test as asyncio test
+testpaths = tests
+pythonpath = .
+""",
         "tests/test_orchestrator.py": test_orchestrator_py,
         "tests/test_api.py": test_api_py,
         "tests/test_config.py": test_config_py,
@@ -1011,7 +1032,7 @@ async def get_summary_analytics():
     return transformation_engine.get_aggregated_metrics()
 """
 
-    ingest_py = """from typing import List, Dict, Any
+    ingest_py = """from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 
 class RawRecord(BaseModel):
@@ -1116,12 +1137,25 @@ volumes:
         "src/pipeline/ingest.py": ingest_py,
         "src/pipeline/transform.py": transform_py,
         "tests/__init__.py": "",
+        "tests/conftest.py": """import sys
+from pathlib import Path
+root = str(Path(__file__).resolve().parent.parent)
+if root not in sys.path:
+    sys.path.insert(0, root)
+""",
+        "pytest.ini": """[pytest]
+asyncio_mode = auto
+markers =
+    asyncio: mark test as asyncio test
+testpaths = tests
+pythonpath = .
+""",
         "tests/test_pipeline.py": test_pipeline_py,
         "Dockerfile": generate_docker_workflow_engine_files(title, tech_stack, roadmap)["Dockerfile"],
         "docker-compose.yml": docker_compose,
         ".github/workflows/ci.yml": generate_docker_workflow_engine_files(title, tech_stack, roadmap)[".github/workflows/ci.yml"],
         "Makefile": generate_docker_workflow_engine_files(title, tech_stack, roadmap)["Makefile"],
-        "requirements.txt": "fastapi>=0.110.0\nuvicorn[standard]>=0.29.0\npydantic>=2.7.0\npytest>=8.1.0\npytest-asyncio>=0.23.0\npsycopg2-binary>=2.9.9\n",
+        "requirements.txt": "fastapi>=0.110.0\nuvicorn[standard]>=0.29.0\npydantic>=2.7.0\npydantic-settings>=2.2.0\npytest>=8.1.0\npytest-asyncio>=0.23.0\npsycopg2-binary>=2.9.9\n",
         ".gitignore": ".env\n__pycache__/\n*.pyc\n.pytest_cache/\n",
     }
 
@@ -1303,7 +1337,7 @@ class ToolRegistry:
 
 def calculator_tool(expression: str) -> str:
     # Safely evaluate arithmetic using AST
-    clean = "".join(c for c in expression if c in "0123456789+-*/. ()")
+    clean = "".join(c for c in expression if c in "0123456789+-*/. ()").strip()
     try:
         node = ast.parse(clean, mode='eval')
         return str(eval(compile(node, '<string>', 'eval'), {"__builtins__": {}}, {}))
@@ -1348,12 +1382,25 @@ async def test_agent_echo_loop(agent):
         "src/tools/__init__.py": "",
         "src/tools/registry.py": tools_py,
         "tests/__init__.py": "",
+        "tests/conftest.py": """import sys
+from pathlib import Path
+root = str(Path(__file__).resolve().parent.parent)
+if root not in sys.path:
+    sys.path.insert(0, root)
+""",
+        "pytest.ini": """[pytest]
+asyncio_mode = auto
+markers =
+    asyncio: mark test as asyncio test
+testpaths = tests
+pythonpath = .
+""",
         "tests/test_agent.py": test_agent_py,
         "Dockerfile": generate_docker_workflow_engine_files(title, tech_stack, roadmap)["Dockerfile"],
         "docker-compose.yml": generate_docker_workflow_engine_files(title, tech_stack, roadmap)["docker-compose.yml"],
         ".github/workflows/ci.yml": generate_docker_workflow_engine_files(title, tech_stack, roadmap)[".github/workflows/ci.yml"],
         "Makefile": generate_docker_workflow_engine_files(title, tech_stack, roadmap)["Makefile"],
-        "requirements.txt": "fastapi>=0.110.0\nuvicorn[standard]>=0.29.0\npydantic>=2.7.0\npytest>=8.1.0\npytest-asyncio>=0.23.0\nhttpx>=0.27.0\n",
+        "requirements.txt": "fastapi>=0.110.0\nuvicorn[standard]>=0.29.0\npydantic>=2.7.0\npydantic-settings>=2.2.0\npytest>=8.1.0\npytest-asyncio>=0.23.0\nhttpx>=0.27.0\n",
         ".gitignore": ".env\n__pycache__/\n*.pyc\n.pytest_cache/\n",
     }
 
@@ -1633,7 +1680,17 @@ async def run_outlier_detection(payload: OutlierRequest):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 """
 
-    config_py = f"""from pydantic_settings import BaseSettings
+    config_py = f"""import os
+try:
+    from pydantic_settings import BaseSettings
+except ImportError:
+    try:
+        from pydantic import BaseSettings
+    except ImportError:
+        from pydantic import BaseModel
+        class BaseSettings(BaseModel):
+            class Config:
+                extra = "allow"
 
 class Settings(BaseSettings):
     APP_NAME: str = "{title}"
@@ -1757,19 +1814,18 @@ import numpy as np
 
 def clean_and_optimize(df: pd.DataFrame) -> pd.DataFrame:
     cleaned = df.copy()
-    for col in cleaned.select_dtypes(include=["object"]).columns:
-        num_unique = cleaned[col].nunique()
-        num_total = len(cleaned[col])
-        if num_total > 0 and (num_unique / num_total) < 0.5:
-            cleaned[col] = cleaned[col].astype("category")
-
     for col in cleaned.columns:
-        if cleaned[col].dtype == "object":
-            try:
-                coerced = pd.to_numeric(cleaned[col], errors="raise")
-                cleaned[col] = coerced
-            except Exception:
-                pass
+        if str(cleaned[col].dtype) in ["object", "string", "str"] or pd.api.types.is_string_dtype(cleaned[col]):
+            num_unique = cleaned[col].nunique()
+            num_total = len(cleaned[col])
+            if num_total > 0 and (num_unique / num_total) < 0.5:
+                cleaned[col] = cleaned[col].astype("category")
+            else:
+                try:
+                    coerced = pd.to_numeric(cleaned[col], errors="raise")
+                    cleaned[col] = coerced
+                except Exception:
+                    pass
     return cleaned
 """
 
@@ -2065,8 +2121,32 @@ build/
 *.csv
 """
 
-    from blueprint_generator import generate_docker_workflow_engine_files
-    logger_py = generate_docker_workflow_engine_files(title, tech_stack, roadmap)["src/utils/logger.py"]
+    logger_py = """import logging
+import json
+import sys
+from datetime import datetime, timezone
+
+class JsonFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        log_payload = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage()
+        }
+        if hasattr(record, "extra") and isinstance(record.extra, dict):
+            log_payload.update(record.extra)
+        return json.dumps(log_payload)
+
+def get_logger(name: str) -> logging.Logger:
+    logger = logging.getLogger(name)
+    if not logger.handlers:
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(JsonFormatter())
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+    return logger
+"""
 
     download_dataset_sh = f"""#!/usr/bin/env bash
 # SkillBridge Kaggle Dataset Download Workflow
@@ -2188,7 +2268,19 @@ kaggle competitions submit -c {slug}-competition -f submissions/final_prediction
         "src/utils/__init__.py": "",
         "src/utils/logger.py": logger_py,
         "tests/__init__.py": "",
-        "tests/conftest.py": "# Pytest fixtures\n",
+        "tests/conftest.py": """import sys
+from pathlib import Path
+root = str(Path(__file__).resolve().parent.parent)
+if root not in sys.path:
+    sys.path.insert(0, root)
+""",
+        "pytest.ini": """[pytest]
+asyncio_mode = auto
+markers =
+    asyncio: mark test as asyncio test
+testpaths = tests
+pythonpath = .
+""",
         "tests/test_analytics_core.py": test_analytics_py,
         "tests/test_data_cleaner.py": test_data_cleaner_py,
         "tests/test_api.py": test_api_py,
