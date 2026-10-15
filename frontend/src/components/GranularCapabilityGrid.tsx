@@ -126,19 +126,11 @@ export const GranularCapabilityGrid: React.FC<GranularCapabilityGridProps> = ({
       {/* Dynamic Header & Archetype Discipline Callout */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-slate-200/60 dark:border-slate-800">
         <div>
-          <div className="flex items-center space-x-2">
-            <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center">
-              <span>Role Skill Breakdown</span>
-            </h4>
-            {archetypeMetadata?.name && (
-              <Badge variant="outline" className="text-[10px] bg-blue-50/70 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
-                <Sparkles size={10} className="mr-1 text-blue-500" />
-                {archetypeMetadata.name}
-              </Badge>
-            )}
-          </div>
+          <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+            Competency Breakdown
+          </h4>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-            {archetypeMetadata?.rationale || "Dimensions and weights are tailored directly to this role."}
+            Required technical skills and category distributions for this role.
           </p>
         </div>
 

@@ -200,4 +200,20 @@ def test_role_authentic_project_tracks_and_clean_slugs():
         assert not re.match(r'^[0-9a-f]{16}$', p["slug"])
         assert "---" not in p["slug"]
 
+def test_advisory_leadership_role_omits_coding_tools():
+    # Advisory Board Member must classify to tech_leadership_advisory
+    result = analyze_gap(["Tech Strategy"], "Advisory Board Member", experience_years=8)
+    arch = result["archetype_metadata"]
+    assert arch["id"] == "tech_leadership_advisory"
+    assert "Technology Leadership" in arch["name"]
+    # Check that projects are leadership & governance focused, NOT Docker or PostgreSQL
+    projects = result["projects"]
+    assert len(projects) >= 3
+    for p in projects:
+        assert "Docker Architecture" not in p["title"]
+        assert "PostgreSQL Analytics" not in p["title"]
+    # Check benchmark standard has clean title without AI slop
+    std_name = result["benchmark_standard"]["standard_name"]
+    assert "Tier-1 Tech Mid-Level" not in std_name
+
 

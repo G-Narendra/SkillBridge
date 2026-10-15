@@ -1,5 +1,5 @@
-// Comprehensive Technology Roles Catalog (470+ industry benchmarked roles)
-export const ALL_TECH_ROLES: string[] = [
+// Comprehensive Technology Roles Catalog
+const RAW_ALL_ROLES: string[] = [
   "AI Agent Engineer",
   "AI Engineer",
   "AI Architect",
@@ -471,6 +471,29 @@ export const ALL_TECH_ROLES: string[] = [
   "Web3 Engineer",
   "Web3 Frontend Engineer",
   "Wireless Engineer",
-  "Writer",
   "Yield Manager"
 ];
+
+const NON_TECH_EXCLUSIONS = [
+  "advisory", "board member", "accountant", "account executive", "affiliate marketing",
+  "angel investor", "banking liaison", "brand manager", "brand strategist", "business development",
+  "business model", "business strategist", "ceo", "cfo", "channel sales", "clinical operations",
+  "cmo", "co founder", "community manager", "company secretary", "competitive analyst",
+  "compliance officer", "content creator", "content strategist", "content writer", "contract manager",
+  "conversion rate", "coo", "copy editor", "copywriter", "corporate lawyer", "cpo", "crm specialist",
+  "crowdfunding", "csr manager", "cultural consultant", "curriculum designer", "customer discovery",
+  "customer experience", "customer interview", "customer marketing", "customer onboarding",
+  "customer success", "customer support", "tokenomics", "trade compliance", "training manager",
+  "training specialist", "transportation manager", "treasurer", "unit economics", "user acquisition",
+  "valuation model", "vc investor", "venture capitalist", "video editor", "video producer",
+  "videographer", "warehouse manager", "writer", "yield manager", "animator", "banking"
+];
+
+export function isTechnicalRole(role: string): boolean {
+  if (!role) return false;
+  const r = role.toLowerCase().trim();
+  return !NON_TECH_EXCLUSIONS.some(k => r.includes(k));
+}
+
+export const ALL_TECH_ROLES: string[] = Array.from(new Set(RAW_ALL_ROLES.filter(isTechnicalRole)));
+

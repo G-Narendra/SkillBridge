@@ -747,9 +747,9 @@ def analyze_gap(
 
     # Transparent Benchmark Standard
     benchmark_standard = {
-        "standard_name": f"Tier-1 Tech Mid-Level {target_role} Industry Baseline ({archetype_meta.get('name')})",
-        "sample_size": "Aggregated from 5,420+ Tier-1 Tech Job Descriptions",
-        "comparison_source": "Aggregated from verified Tier-1 technical engineering job postings and competence rubrics",
+        "standard_name": f"{target_role} Benchmark Standards",
+        "sample_size": "Industry engineering role expectations",
+        "comparison_source": "Verified technical skill rubrics and production requirements",
         "percentile_threshold": 80,
         "required_distribution": dynamic_profile,
         "tier_weights": dynamic_weights,

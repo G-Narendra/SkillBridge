@@ -50,7 +50,7 @@ import { GranularCapabilityGrid } from "@/components/GranularCapabilityGrid";
 import { GapDiagnosticTable } from "@/components/GapDiagnosticTable";
 import { ManualSetupModal } from "@/components/ManualSetupModal";
 import { SeniorStandingCard } from "@/components/SeniorStandingCard";
-import { ALL_TECH_ROLES } from "@/lib/roles";
+import { ALL_TECH_ROLES, isTechnicalRole } from "@/lib/roles";
 
 const STANDARD_ROLES = ALL_TECH_ROLES;
 const OFFICIAL_RENDER_BACKEND = "https://skillbridge-backend-1pm3.onrender.com";
@@ -73,40 +73,7 @@ function getDefaultApiUrl(): string {
   return OFFICIAL_BACKEND_URL;
 }
 
-const getRoleDisciplinePreview = (role: string) => {
-  const r = (role || "").toLowerCase();
-  if (r.includes("frontend") || r.includes("react") || r.includes("ui") || r.includes("ux")) {
-    return { name: "Frontend & Interface Engineering", note: "Databases omitted" };
-  }
-  if (r.includes("devops") || r.includes("sre") || r.includes("reliability") || r.includes("cloud") || r.includes("platform")) {
-    return { name: "DevOps, SRE & Platform", note: "Web Frameworks omitted" };
-  }
-  if (r.includes("data analyst") || r.includes("bi ") || r.includes("business intelligence")) {
-    return { name: "Data Analytics & BI", note: "Web Frameworks omitted" };
-  }
-  if (r.includes("data engineer") || r.includes("pipeline") || r.includes("etl")) {
-    return { name: "Data Engineering & Lakehouses", note: "Client UI omitted" };
-  }
-  if (r.includes("machine learning") || r.includes("ml ") || r.includes("ai") || r.includes("deep learning")) {
-    return { name: "AI & Machine Learning", note: "Client UI omitted" };
-  }
-  if (r.includes("security") || r.includes("cyber") || r.includes("soc") || r.includes("penetration")) {
-    return { name: "Security & Systems Defense", note: "Frontend Web UI omitted" };
-  }
-  if (r.includes("mobile") || r.includes("ios") || r.includes("android") || r.includes("flutter")) {
-    return { name: "Mobile Development", note: "Enterprise Warehouses omitted" };
-  }
-  if (r.includes("blockchain") || r.includes("web3") || r.includes("solidity")) {
-    return { name: "Blockchain & Web3", note: "Legacy Relational omitted" };
-  }
-  if (r.includes("embedded") || r.includes("firmware") || r.includes("kernel")) {
-    return { name: "Embedded & Systems", note: "Web Frameworks omitted" };
-  }
-  if (r.includes("backend") || r.includes("server") || r.includes("microservice")) {
-    return { name: "Backend & Systems", note: "Client CSS omitted" };
-  }
-  return { name: "Fullstack Engineering", note: "Balanced Fullstack Metrics" };
-};
+
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
@@ -302,7 +269,7 @@ export default function Home() {
           timeout: 6000
         });
         if (rolesRes.data?.roles && Array.isArray(rolesRes.data.roles) && isMounted) {
-          const names = rolesRes.data.roles.map((r: any) => r.name);
+          const names = rolesRes.data.roles.map((r: any) => r.name).filter(isTechnicalRole);
           if (names.length > 0) {
             const merged = Array.from(new Set([...ALL_TECH_ROLES, ...names]));
             setAvailableRoles(merged);
@@ -906,21 +873,7 @@ Generated: ${new Date().toISOString()}
                     }}
                     options={availableRoles}
                   />
-                  {/* Real-time Discipline Calibration Preview */}
-                  {targetRole && (() => {
-                    const discipline = getRoleDisciplinePreview(targetRole);
-                    return (
-                      <div className="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 transition-all">
-                        <span className="text-slate-700 dark:text-slate-300 flex items-center font-medium">
-                          <Sparkles size={11} className="mr-1 text-blue-500" />
-                          {discipline.name}
-                        </span>
-                        <span className="text-[10px] font-mono font-medium text-emerald-600 dark:text-emerald-400">
-                          {discipline.note}
-                        </span>
-                      </div>
-                    );
-                  })()}
+
                 </div>
 
                 {/* Dynamic Custom Job Description / Skills Option */}

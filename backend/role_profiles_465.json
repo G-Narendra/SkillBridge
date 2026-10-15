@@ -89,28 +89,32 @@
   "Advisory Board Member": {
     "slug": "advisory-board-member",
     "name": "Advisory Board Member",
-    "skills_count": 2,
+    "skills_count": 4,
     "raw_skills": [
       "Strategic Advising",
-      "Strict Blind Reviewer"
+      "System Architecture Governance",
+      "Cloud Economics",
+      "Technical Roadmapping"
     ],
     "categories": {
       "languages": [
-        "SQL"
+        "System Architecture",
+        "Tech Strategy"
       ],
       "frameworks": [
-        "Pandas"
+        "Data Governance",
+        "Compliance"
       ],
       "databases": [
-        "PostgreSQL"
+        "Cloud Economics",
+        "Risk Management"
       ],
       "tools": [
-        "Docker",
-        "Git"
+        "Technical Leadership",
+        "Agile Governance"
       ]
     },
     "objectives": [
-      "Operates as the ultimate Quality Assurance Executioner for the Advisory Board Member: Hypergrowth Strategy role. Mathematically banned from reading context. Judges output purely on its isolated merits. Zero empathy. Zero soft corners. Ruthlessly hunts for flaws, anti-patterns, and vulnerabilities.",
       "Operates at the Board of Directors / Advisory level. Provides ruthless, unbiased strategic oversight. Challenges the CEO's assumptions, identifies blind spots in Go-To-Market (GTM) strategy, and leverages a deep Rolodex to force multiplier partnerships. Does not execute code; executes strategy and governance."
     ]
   },

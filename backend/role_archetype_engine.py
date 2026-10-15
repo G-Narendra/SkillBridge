@@ -363,10 +363,42 @@ ARCHETYPE_REGISTRY: Dict[str, Dict[str, Any]] = {
             }
         }
     },
+    "tech_leadership_advisory": {
+        "id": "tech_leadership_advisory",
+        "name": "Technology Leadership & Architecture Strategy",
+        "rationale": "Evaluates strategic technology vision, system architecture governance, risk management, and organizational scaling. Routine implementation syntax is omitted to reflect executive and advisory scope.",
+        "omitted_metrics": ["Routine Implementation Scripting", "Low-Level Database DDL", "Container Configuration"],
+        "dimensions": {
+            "tech_strategy": {
+                "label": "Technology Strategy & Architecture",
+                "weight": 0.35,
+                "icon": "activity",
+                "default_skills": ["System Architecture", "Tech Strategy", "Cloud Strategy", "Enterprise Architecture"]
+            },
+            "data_product_governance": {
+                "label": "Data Governance & Compliance",
+                "weight": 0.25,
+                "icon": "database",
+                "default_skills": ["Data Governance", "SQL", "Compliance", "Security Auditing"]
+            },
+            "operational_scale": {
+                "label": "Scalability, Cloud Economics & Risk",
+                "weight": 0.20,
+                "icon": "cloud",
+                "default_skills": ["Cloud Economics", "Risk Management", "Disaster Recovery", "Vendor Evaluation"]
+            },
+            "engineering_leadership": {
+                "label": "Engineering Leadership & Roadmapping",
+                "weight": 0.20,
+                "icon": "shield",
+                "default_skills": ["Technical Leadership", "Agile Governance", "Roadmapping", "Team Topologies"]
+            }
+        }
+    },
     "fullstack_general": {
         "id": "fullstack_general",
-        "name": "Fullstack & General Software Engineering",
-        "rationale": "Balanced generalist rubric evaluating full-lifecycle delivery spanning client UI, server-side APIs, database modeling, and deployment pipelines.",
+        "name": "Software Engineering",
+        "rationale": "Evaluates core full-lifecycle software delivery covering application logic, interfaces, persistence, and deployment.",
         "omitted_metrics": [],
         "dimensions": {
             "fullstack_languages": {
@@ -379,7 +411,7 @@ ARCHETYPE_REGISTRY: Dict[str, Dict[str, Any]] = {
                 "label": "Frontend & UI",
                 "weight": 0.25,
                 "icon": "layers",
-                "default_skills": ["React", "Next.js", "FastAPI", "Node.js"]
+                "default_skills": ["React", "Next.js", "Vue", "Tailwind CSS"]
             },
             "backend_services": {
                 "label": "Databases & Storage",
@@ -403,6 +435,13 @@ def classify_role_archetype(role_name: str) -> str:
     Classifies any target role name into its optimal Engineering Discipline Archetype.
     """
     r = role_name.lower().strip()
+
+    # 0. Leadership, Advisory, Board, Executive & Strategy
+    if any(k in r for k in [
+        "advisory", "board member", "advisor", "executive", "ceo", "cfo", "coo", "cmo",
+        "governance", "venture", "investor", "director", "strategist", "consultant"
+    ]):
+        return "tech_leadership_advisory"
 
     # 1. AI Agents & LLMs
     if any(k in r for k in ["agent", "llm", "rag", "prompt", "cognitive", "langchain", "llamaindex"]):
@@ -448,7 +487,7 @@ def classify_role_archetype(role_name: str) -> str:
     if any(k in r for k in ["backend", "back-end", "api engineer", "microservices", "distributed systems", "server"]):
         return "backend_systems"
 
-    # 12. Fullstack & Generalist (Default)
+    # 12. Software Engineering (Default Generalist)
     return "fullstack_general"
 
 
@@ -534,9 +573,9 @@ def build_dynamic_role_profile(
         if flat_skills:
             assigned = [s for s in flat_skills if s in dim_cfg["default_skills"]]
             if not assigned:
-                chunk_size = max(1, len(flat_skills) // len(dimension_keys))
-                start_i = idx * chunk_size
-                assigned = flat_skills[start_i:start_i + chunk_size] or dim_cfg["default_skills"]
+                assigned = [s for s in flat_skills if s.lower() in [d.lower() for d in dim_cfg["default_skills"]]]
+            if not assigned:
+                assigned = dim_cfg["default_skills"]
             dynamic_profile[dim_key] = list(dict.fromkeys(assigned))
         else:
             dynamic_profile[dim_key] = list(dict.fromkeys(dim_cfg["default_skills"]))

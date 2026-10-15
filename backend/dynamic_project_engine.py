@@ -56,7 +56,7 @@ class BlueprintCacheManager:
     def compute_key(self, role: str, missing_skills: List[str], project_index: int, is_freshman: bool = False) -> str:
         clean_role = role.strip().lower()
         clean_skills = ":".join(sorted([s.strip().lower() for s in missing_skills]))
-        raw = f"v2|{clean_role}|{clean_skills}|{project_index}|{'freshman' if is_freshman else 'standard'}"
+        raw = f"v3|{clean_role}|{clean_skills}|{project_index}|{'freshman' if is_freshman else 'standard'}"
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
     def get(self, key: str) -> Optional[Dict[str, Any]]:
@@ -366,7 +366,48 @@ def get_discipline_project_tracks(
             }
         ]
 
-    # 5. Default / Backend Systems & Fullstack General
+    # 5. Technology Leadership, Advisory & Architecture Strategy
+    if discipline == "tech_leadership_advisory":
+        return [
+            {
+                "track": "Enterprise Architecture & System Governance",
+                "lead_skills": ["System Architecture", "Tech Strategy"],
+                "complement_skills": ["Enterprise Architecture", "Cloud Strategy"],
+                "difficulty": "Intermediate",
+                "hours": 24,
+                "theme_template": "Enterprise {primary} Strategy & Architecture Governance Framework",
+                "slug_base": "architecture-governance-framework"
+            },
+            {
+                "track": "Data Governance, Security & Compliance",
+                "lead_skills": ["Data Governance", "Compliance"],
+                "complement_skills": ["Security Auditing", "SQL"],
+                "difficulty": "Intermediate",
+                "hours": 20,
+                "theme_template": "Enterprise {primary} & Security Audit Engine",
+                "slug_base": "security-audit-engine"
+            },
+            {
+                "track": "Cloud Economics & TCO Scalability",
+                "lead_skills": ["Cloud Economics", "Risk Management"],
+                "complement_skills": ["Disaster Recovery", "Vendor Evaluation"],
+                "difficulty": "Advanced",
+                "hours": 28,
+                "theme_template": "Cloud {primary} & Disaster Recovery Audit Engine",
+                "slug_base": "cloud-tco-risk-engine"
+            },
+            {
+                "track": "Technical Roadmapping & Board Due Diligence",
+                "lead_skills": ["Technical Leadership", "Agile Governance"],
+                "complement_skills": ["Roadmapping", "Tech Strategy"],
+                "difficulty": "Advanced",
+                "hours": 32,
+                "theme_template": "Executive Technical Due-Diligence & Strategic Scaling Engine",
+                "slug_base": "technical-due-diligence-engine"
+            }
+        ]
+
+    # 6. Default / Backend Systems & Software Engineering
     first_track = {
         "track": "Foundational Architecture & Automated Test Suite",
         "lead_skills": matched_skills[:1] or langs[:1] or ["Python"],
@@ -411,8 +452,8 @@ def get_discipline_project_tracks(
             "complement_skills": ["Docker", "FastAPI", "PostgreSQL"],
             "difficulty": "Advanced",
             "hours": 36,
-            "theme_template": "Production-Grade {role} Verification Platform",
-            "slug_base": "enterprise-verification-platform"
+            "theme_template": "Enterprise High-Throughput Service Platform",
+            "slug_base": "enterprise-service-platform"
         }
     ]
 
@@ -470,10 +511,18 @@ def synthesize_dynamic_blueprints(
         if not targeted_gaps:
             targeted_gaps = combined_stack[:2]
 
-        objective = (
-            f"Engineered specifically for {clean_role_title} portfolios to bridge competencies in "
-            f"{', '.join(targeted_gaps)}. Solves high-reliability production demands with deterministic test coverage."
-        )
+        if "Analytics" in title or "BI" in title or "Data" in title:
+            objective = "Production data pipeline implementing automated schema validation, transformation logic, and real-time analytical reporting."
+        elif "Design System" in title or "UI" in title or "Dashboard" in title or "Frontend" in title:
+            objective = "Component-driven interface architecture with WCAG accessibility tokens, responsive layout patterns, and visual regression test harnesses."
+        elif "Pipeline" in title or "Infrastructure" in title or "Ansible" in title or "Terraform" in title:
+            objective = "Automated infrastructure as code and deployment pipeline featuring container security scanning, health probes, and CI/CD automation."
+        elif "Governance" in title or "Due-Diligence" in title or "Audit" in title or "Strategy" in title:
+            objective = "Executive technical governance framework evaluating architecture decisions, regulatory compliance, and cloud unit economics."
+        elif "Semantic" in title or "RAG" in title or "Agent" in title or "AI" in title:
+            objective = "Retrieval-augmented service utilizing vector embeddings, semantic caching, and asynchronous inference pipelines."
+        else:
+            objective = "Production service implementing domain-driven architecture, resilient input validation, connection pooling, and structured error propagation."
 
         architecture = (
             f"Modular domain-driven architecture utilizing {combined_stack[0]} and {combined_stack[1]} "

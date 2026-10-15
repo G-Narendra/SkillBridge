@@ -20,8 +20,8 @@ export const BenchmarkComparisonBanner: React.FC<BenchmarkComparisonBannerProps>
   overallMatch,
   deficitDelta,
 }) => {
-  const standardName = benchmarkStandard?.standard_name || `Tier-1 Tech Mid-Level ${role} Industry Baseline`;
-  const sampleSize = benchmarkStandard?.sample_size || "Aggregated from 5,420+ Tier-1 Tech Job Descriptions";
+  const standardName = benchmarkStandard?.standard_name || `${role} Benchmark Standards`;
+  const comparisonDetail = benchmarkStandard?.sample_size || "Standard industry engineering expectations";
 
   return (
     <div className="rounded-2xl border border-blue-500/20 bg-gradient-to-r from-blue-50/80 via-slate-50/70 to-indigo-50/60 dark:from-[#0071e3]/10 dark:via-[#1e293b]/60 dark:to-indigo-950/20 p-5 shadow-sm">
@@ -30,18 +30,15 @@ export const BenchmarkComparisonBanner: React.FC<BenchmarkComparisonBannerProps>
           <div className="flex items-center space-x-2">
             <span className="flex items-center text-xs font-semibold uppercase tracking-wider text-[#0071e3] dark:text-[#3898ec]">
               <Scale size={14} className="mr-1.5" />
-              Benchmark Standard
+              Role Benchmark
             </span>
-            <Badge variant="default" className="text-[10px] font-mono">
-              Tier-1 Tech Baseline
-            </Badge>
           </div>
           <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
             {standardName}
           </h3>
           <p className="text-xs text-slate-600 dark:text-slate-300 flex items-center">
             <Users size={13} className="mr-1.5 text-slate-400 shrink-0" />
-            <span>Compared with: <strong className="font-medium text-slate-800 dark:text-slate-200">{sampleSize}</strong></span>
+            <span>{comparisonDetail}</span>
           </p>
         </div>
 
