@@ -38,9 +38,17 @@ export function CategoryChart({ dimensions, breakdown = {}, isDark = true }: Cat
   }, []);
 
   const data = React.useMemo(() => {
+    const cleanLabel = (str: string) =>
+      str
+        .replace(/&(?=\S)/g, "& ")
+        .replace(/(?<=\S)&/g, " &")
+        .replace(/([a-z])([A-Z])/g, "$1 $2")
+        .replace(/\s+/g, " ")
+        .trim();
+
     if (dimensions && dimensions.length > 0) {
       return dimensions.map((d) => ({
-        category: d.label,
+        category: cleanLabel(d.label),
         percentage: d.percentage ?? 0,
         weight: `${Math.round((d.weight || 0.25) * 100)}%`,
         matched: d.matched?.length ?? 0,
@@ -51,7 +59,7 @@ export function CategoryChart({ dimensions, breakdown = {}, isDark = true }: Cat
     const items = Object.entries(breakdown)
       .filter(([_, item]) => !item?.is_omitted)
       .map(([key, item]) => ({
-        category: item.tier_label || item.label || key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+        category: cleanLabel(item.tier_label || item.label || key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())),
         percentage: item.percentage ?? 0,
         weight: item.weight ? `${Math.round(item.weight * 100)}%` : "25%",
         matched: item.matched?.length ?? 0,
@@ -73,7 +81,7 @@ export function CategoryChart({ dimensions, breakdown = {}, isDark = true }: Cat
   if (!mounted) {
     return (
       <div className="h-44 w-full flex items-center justify-center text-xs text-slate-400">
-        Initializing competency matrix...
+        Loading skills breakdown...
       </div>
     );
   }
@@ -81,7 +89,7 @@ export function CategoryChart({ dimensions, breakdown = {}, isDark = true }: Cat
   return (
     <div className="h-44 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+        <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 5, bottom: 5 }}>
           <XAxis type="number" domain={[0, 100]} hide />
           <YAxis
             type="category"
@@ -90,7 +98,7 @@ export function CategoryChart({ dimensions, breakdown = {}, isDark = true }: Cat
             fontSize={11}
             tickLine={false}
             axisLine={false}
-            width={85}
+            width={120}
           />
           <Tooltip
             content={({ active, payload }) => {

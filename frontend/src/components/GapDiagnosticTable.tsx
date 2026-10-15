@@ -23,8 +23,8 @@ export const GapDiagnosticTable: React.FC<GapDiagnosticTableProps> = ({ gaps, ta
   if (!gaps || gaps.length === 0) {
     return (
       <div className="rounded-2xl border border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-500/10 p-5 text-center text-xs text-emerald-800 dark:text-emerald-300">
-        <h4 className="font-semibold text-sm mb-1">Zero Competency Deficits Identified</h4>
-        <p>Candidate qualifications fulfill all Tier-1 industry benchmark requirements for {targetRole}.</p>
+        <h4 className="font-semibold text-sm mb-1">All Required Skills Matched</h4>
+        <p>Your technical qualifications cover all evaluated competencies for {targetRole}.</p>
       </div>
     );
   }
@@ -35,14 +35,14 @@ export const GapDiagnosticTable: React.FC<GapDiagnosticTableProps> = ({ gaps, ta
         <div>
           <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5">
             <AlertCircle size={15} className="text-amber-500 inline" />
-            <span>High-Density Gap Diagnostic Matrix</span>
+            <span>Identified Skill Gaps</span>
           </h4>
           <span className="text-[11px] text-slate-500 dark:text-slate-400">
-            Factual engineering rationale and quantifiable benchmark deficit deltas
+            Prioritized skills for this role with clear engineering rationale
           </span>
         </div>
         <span className="text-xs font-mono font-medium text-slate-600 dark:text-slate-300">
-          {gaps.length} Competency {gaps.length === 1 ? "Gap" : "Gaps"}
+          {gaps.length} Skill {gaps.length === 1 ? "Gap" : "Gaps"}
         </span>
       </div>
 
@@ -51,10 +51,10 @@ export const GapDiagnosticTable: React.FC<GapDiagnosticTableProps> = ({ gaps, ta
           <thead>
             <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#1e293b]/60 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
               <th className="py-3 px-4">Skill Requirement</th>
-              <th className="py-3 px-3">Technical Tier</th>
-              <th className="py-3 px-3 text-center">Benchmark Delta</th>
+              <th className="py-3 px-3">Category</th>
+              <th className="py-3 px-3 text-center">Target Benchmark</th>
               <th className="py-3 px-3 text-center">Priority</th>
-              <th className="py-3 px-4">Pedagogical Engineering Rationale</th>
+              <th className="py-3 px-4">Why This Skill Matters</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">

@@ -9,6 +9,7 @@ interface ManualSetupModalProps {
   onClose: () => void;
   blueprint: any;
   apiBaseUrl: string;
+  username?: string;
 }
 
 export const ManualSetupModal: React.FC<ManualSetupModalProps> = ({
@@ -16,6 +17,7 @@ export const ManualSetupModal: React.FC<ManualSetupModalProps> = ({
   onClose,
   blueprint,
   apiBaseUrl,
+  username,
 }) => {
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -23,11 +25,24 @@ export const ManualSetupModal: React.FC<ManualSetupModalProps> = ({
 
   if (!blueprint) return null;
 
-  const slug = (blueprint.id || blueprint.title || "skillbridge-project")
+  // Generate clean, human-readable slug from title or slug, strictly avoiding raw hex cache keys
+  const isHexHash = (s: string) => /^[0-9a-f]{16}$/i.test(s);
+  const rawCandidate = (blueprint.slug && !isHexHash(blueprint.slug))
+    ? blueprint.slug
+    : (blueprint.title && !isHexHash(blueprint.title))
+      ? blueprint.title
+      : (!isHexHash(blueprint.id || "") ? blueprint.id : "portfolio-project");
+
+  const slug = (rawCandidate || "portfolio-project")
     .toLowerCase()
-    .replace(/[^a-z0-9_-]/g, "-")
+    .replace(/[^a-z0-9]+/g, "-")
     .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replace(/^-|-$/g, "")
+    .slice(0, 48);
+
+  const userHandle = (username && username.trim() && username !== "your-username")
+    ? username.trim()
+    : "<your-github-username>";
 
   const terminalScript = `# Step 1: Initialize local repository directory
 mkdir ${slug} && cd ${slug}
@@ -49,7 +64,7 @@ gh repo create ${slug} --public --source=. --remote=origin --push
 # (Alternative without GitHub CLI):
 # 1. Create a new repository on https://github.com/new named '${slug}'
 # 2. Run:
-#    git remote add origin https://github.com/<your-username>/${slug}.git
+#    git remote add origin https://github.com/${userHandle}/${slug}.git
 #    git add .
 #    git commit -m "chore: initial project skeleton with TDD test harness"
 #    git push -u origin main`;

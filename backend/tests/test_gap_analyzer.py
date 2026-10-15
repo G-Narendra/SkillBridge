@@ -142,3 +142,62 @@ def test_jev_classifier_filtering():
     assert res2.is_resume is False
     assert "invoice" in res2.rejection_reason.lower()
 
+
+def test_fresher_experience_calibrated_benchmark():
+    # Fresher candidate with only basic skills: Python, React, Git (0 years experience)
+    candidate_skills = ["Python", "React", "Git"]
+    # Evaluated as Fresher (0 years)
+    fresher_result = analyze_gap(candidate_skills, "Frontend Engineer", experience_years=0)
+    # Evaluated as Senior (6 years)
+    senior_result = analyze_gap(candidate_skills, "Frontend Engineer", experience_years=6)
+
+    # Fresher benchmark evaluates against core foundational subset, giving higher readiness percentage
+    assert fresher_result["match_percentage"] >= senior_result["match_percentage"]
+    # Dimensions for fresher have fewer, focused required competencies
+    for dim in fresher_result["dimensions"]:
+        assert dim["total_required"] <= 3
+
+
+def test_custom_job_description_strict_evaluation():
+    jd = """
+    We are looking for a Python Backend Developer proficient in FastAPI, PostgreSQL, and Docker.
+    Must have experience with Git and Redis caching.
+    """
+    candidate_skills = ["Python", "FastAPI", "Docker", "Git"] # Has 4 out of 5 required
+    result = analyze_gap(candidate_skills, "Backend Engineer", custom_job_description=jd)
+
+    assert result["archetype_metadata"]["id"] == "custom_job_description"
+    assert "Custom Job Description Benchmark" in result["archetype_metadata"]["name"]
+    # Missing skills should strictly include Redis and PostgreSQL (from the JD)
+    missing = result["missing_skills"]
+    assert "Redis" in missing or "PostgreSQL" in missing
+    # Candidate should not be penalized for skills not in the JD (like Kubernetes or Django)
+    assert "Kubernetes" not in missing
+    assert "Django" not in missing
+
+
+def test_role_authentic_project_tracks_and_clean_slugs():
+    import re
+    # 1. Frontend Engineer projects must be UI & client focused
+    fe_result = analyze_gap(["HTML"], "Frontend Engineer", experience_years=2)
+    fe_projects = fe_result["projects"]
+    assert len(fe_projects) >= 3
+    # Check that Frontend projects do not repeat PostgreSQL Persistence Engine
+    assert any("Component Design System" in p["title"] or "Dashboard" in p["title"] for p in fe_projects)
+    for p in fe_projects:
+        # Must have clean slug without 16-hex hash
+        assert not re.match(r'^[0-9a-f]{16}$', p["id"])
+        assert not re.match(r'^[0-9a-f]{16}$', p["slug"])
+        assert "---" not in p["slug"]
+
+    # 2. DevOps Engineer projects must be Cloud & Container focused
+    devops_result = analyze_gap(["Linux"], "DevOps Engineer", experience_years=2)
+    devops_projects = devops_result["projects"]
+    assert len(devops_projects) >= 3
+    assert any("Infrastructure Pipeline" in p["title"] or "Container Cluster" in p["title"] or "CI/CD" in p["title"] for p in devops_projects)
+    for p in devops_projects:
+        assert not re.match(r'^[0-9a-f]{16}$', p["id"])
+        assert not re.match(r'^[0-9a-f]{16}$', p["slug"])
+        assert "---" not in p["slug"]
+
+

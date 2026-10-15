@@ -128,7 +128,7 @@ export const GranularCapabilityGrid: React.FC<GranularCapabilityGridProps> = ({
         <div>
           <div className="flex items-center space-x-2">
             <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center">
-              <span>Role-Calibrated Competency Dimensions</span>
+              <span>Role Skill Breakdown</span>
             </h4>
             {archetypeMetadata?.name && (
               <Badge variant="outline" className="text-[10px] bg-blue-50/70 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
@@ -138,12 +138,12 @@ export const GranularCapabilityGrid: React.FC<GranularCapabilityGridProps> = ({
             )}
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-            {archetypeMetadata?.rationale || "Dimensions and weights are dynamically calibrated to this role's engineering discipline."}
+            {archetypeMetadata?.rationale || "Dimensions and weights are tailored directly to this role."}
           </p>
         </div>
 
         <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 shrink-0">
-          {activeDimensions.length} Calibrated Metrics (Sum = 100%)
+          {activeDimensions.length} Categories (Total = 100%)
         </span>
       </div>
 
@@ -153,16 +153,16 @@ export const GranularCapabilityGrid: React.FC<GranularCapabilityGridProps> = ({
           <Info size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
           <div className="space-y-0.5">
             <span className="font-semibold block leading-tight">
-              Fair Assessment Discipline Calibration
+              Fair Assessment: Non-Essential Skills Excluded
             </span>
             <p className="text-[11px] text-emerald-800/90 dark:text-emerald-300/90">
-              The following metrics are non-essential for this role and are <strong className="font-semibold">omitted (0% weight)</strong>:{" "}
+              The following domains are not required for this role and have <strong className="font-semibold">0% weight</strong>:{" "}
               {omittedList.map((m, idx) => (
                 <span key={m} className="font-mono bg-emerald-100/70 dark:bg-emerald-900/50 px-1.5 py-0.2 rounded text-[10px] mx-0.5">
                   {m}{idx < omittedList.length - 1 ? "" : ""}
                 </span>
               ))}
-              . Candidates are not penalized for omitted domains.
+              . Candidates are not evaluated or penalized on these.
             </p>
           </div>
         </div>

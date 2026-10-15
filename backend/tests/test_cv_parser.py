@@ -45,6 +45,29 @@ def test_detect_experience_years():
     text2 = "Employed at Tech Corp from 2021 to 2025 as software developer."
     assert detect_experience_years(text2) == 4
 
+    # Fresher student with degree span and internship
+    text3 = """
+    EDUCATION
+    B.Tech Computer Science | 2022 - 2026
+    XYZ University, CGPA: 8.5
+
+    EXPERIENCE
+    Frontend Intern | June 2024 - Aug 2024
+    Startup Inc (3 months internship)
+
+    PROJECTS
+    React Dashboard with Tailwind CSS
+    """
+    assert detect_experience_years(text3) == 0
+
+    # Explicit < 1 year
+    text4 = "Passionate junior developer with less than 1 year of experience in Python and SQL."
+    assert detect_experience_years(text4) == 0
+
+    # Fresher keyword
+    text5 = "Recent college graduate, fresher software engineer seeking entry-level opportunity."
+    assert detect_experience_years(text5) == 0
+
 def test_parse_real_pdf_if_available():
     pdf_path = r"E:\Moving\Desktop\SkillBridge\CV_Narendra_Gandikota_td_data-analyst.pdf"
     if os.path.exists(pdf_path):

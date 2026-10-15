@@ -550,14 +550,16 @@ def generate_pedagogical_reasoning(skill: str, tier: str, role: str) -> str:
 def analyze_gap(
     candidate_skills: List[str],
     target_role: str,
-    custom_job_description: Optional[str] = None
+    custom_job_description: Optional[str] = None,
+    experience_years: int = 1
 ) -> Dict[str, Any]:
     """
-    Evaluates candidate skills against the role taxonomy or custom requirements using weighted formula:
-    Languages: 40%, Frameworks: 30%, Databases: 20%, Tools: 10%.
-    Produces category-specific breakdowns and 2 or 4 project proposals.
+    Evaluates candidate skills against the role taxonomy or custom requirements using weighted formula.
+    Calibrates benchmarks to the candidate's experience tier (Fresher, Mid-Level, Senior)
+    and benchmarks strictly against custom Job Descriptions when provided.
     """
     profile: Optional[Dict[str, List[str]]] = None
+    is_custom_jd: bool = False
 
     if custom_job_description and custom_job_description.strip():
         try:
@@ -566,6 +568,7 @@ def analyze_gap(
             total_custom = sum(len(skills) for skills in custom_skills.values())
             if total_custom > 0:
                 profile = custom_skills
+                is_custom_jd = True
         except Exception as e:
             logger.warning(f"Failed to extract skills from custom job description: {e}")
 
@@ -597,7 +600,12 @@ def analyze_gap(
                 "tools": ["Docker", "Git", "Linux", "AWS"]
             }
 
-    dynamic_profile, dynamic_weights, archetype_meta = build_dynamic_role_profile(target_role, profile)
+    dynamic_profile, dynamic_weights, archetype_meta = build_dynamic_role_profile(
+        target_role,
+        profile,
+        experience_years=experience_years,
+        is_custom_jd=is_custom_jd
+    )
 
     category_breakdown: Dict[str, Dict[str, Any]] = {}
     all_matched: List[str] = []
@@ -766,9 +774,14 @@ def analyze_gap(
     else:
         projects = generate_llm_blueprints(all_missing, target_role)
         if not projects:
-            projects = synthesize_dynamic_blueprints(target_role, all_missing, all_matched)
+            projects = synthesize_dynamic_blueprints(
+                target_role,
+                all_missing,
+                all_matched,
+                experience_years=experience_years
+            )
 
-        # Ensure every blueprint contains production-grade multi-file architectures & pedagogical metadata
+        # Ensure every blueprint contains production-grade multi-file architectures & clear metadata
         for p in projects:
             title_str = p.get("title", f"{target_role} Architecture Platform")
             stack_list = p.get("tech_stack", [])
@@ -779,12 +792,17 @@ def analyze_gap(
                     p.get("roadmap", []),
                     target_role
                 )
-            slug = p.get("slug") or (re.sub(r'[^a-zA-Z0-9_-]', '-', title_str.lower()).strip('-') or "skillbridge-project")
+            clean_title = title_str.replace("High-Throughput", "").replace("Production-Grade", "").strip()
+            raw_slug = p.get("slug") or re.sub(r'[^a-zA-Z0-9]+', '-', clean_title.lower()).strip('-')[:45]
+            if re.match(r'^[0-9a-f]{16}$', str(raw_slug)):
+                raw_slug = re.sub(r'[^a-zA-Z0-9]+', '-', clean_title.lower()).strip('-')[:45]
+            slug = raw_slug or "portfolio-project"
+
             is_ds = p.get("is_kaggle_track", False) or any(
                 k in target_role.lower() or k in title_str.lower() or any(k in t.lower() for t in stack_list)
                 for k in ["data", "ml", "machine learning", "ai", "pandas", "pytorch", "kaggle", "snowflake", "bigquery"]
             )
-            p["id"] = p.get("id") or slug
+            p["id"] = slug
             p["slug"] = slug
             p["is_kaggle_track"] = is_ds
             p["is_skeleton"] = True

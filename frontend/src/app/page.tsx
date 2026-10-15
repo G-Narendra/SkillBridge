@@ -1049,7 +1049,7 @@ Generated: ${new Date().toISOString()}
                   {/* Dynamic Dimension Distribution Bar Chart */}
                   <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
                     <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 block mb-1">
-                      Calibrated Dimension Balance
+                      Skill Distribution by Category
                     </span>
                     <CategoryChart
                       dimensions={analysis.dimensions}
@@ -1838,6 +1838,7 @@ Generated: ${new Date().toISOString()}
         onClose={() => setManualSetupModalOpen(false)}
         blueprint={manualBlueprint}
         apiBaseUrl={apiBaseUrl}
+        username={connectedUser?.login || platformAccount?.login || (analysis?.contacts?.github ? analysis.contacts.github.split("/").pop() : "") || ""}
       />
     </main>
   );

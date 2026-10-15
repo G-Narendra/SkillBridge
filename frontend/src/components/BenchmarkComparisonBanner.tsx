@@ -47,19 +47,19 @@ export const BenchmarkComparisonBanner: React.FC<BenchmarkComparisonBannerProps>
 
         <div className="flex items-center gap-3 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-200 dark:border-slate-800">
           <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-[#0f172a]/80 px-3.5 py-2 text-center">
-            <span className="text-[10px] uppercase font-semibold text-slate-400 block">Candidate Match</span>
+            <span className="text-[10px] uppercase font-semibold text-slate-400 block">Your Match Score</span>
             <span className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
               {overallMatch}%
             </span>
           </div>
           <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-[#0f172a]/80 px-3.5 py-2 text-center">
-            <span className="text-[10px] uppercase font-semibold text-slate-400 block">Competency Delta</span>
+            <span className="text-[10px] uppercase font-semibold text-slate-400 block">Skill Gap</span>
             <span className="text-xl font-bold font-mono text-amber-600 dark:text-amber-400">
               {typeof deficitDelta === "number" ? deficitDelta.toFixed(1) : "0.0"}%
             </span>
           </div>
           <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-[#0f172a]/80 px-3.5 py-2 text-center hidden sm:block">
-            <span className="text-[10px] uppercase font-semibold text-slate-400 block">Hire Target</span>
+            <span className="text-[10px] uppercase font-semibold text-slate-400 block">Target Benchmark</span>
             <span className="text-xl font-bold font-mono text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <Target size={14} className="mr-1 inline text-blue-500" />
               80%

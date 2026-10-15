@@ -13,6 +13,7 @@ import time
 import hashlib
 from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
+from role_archetype_engine import classify_role_archetype
 
 # Locate workspace root outputs directory
 _curr = Path(__file__).resolve().parent
@@ -63,6 +64,12 @@ class BlueprintCacheManager:
             self.hits += 1
             cached_data = dict(self._memory_cache[key])
             cached_data["is_cached"] = True
+            # Never return a 16-hex hash as the user-facing blueprint id or slug
+            if "id" in cached_data and re.match(r'^[0-9a-f]{16}$', str(cached_data["id"])):
+                title_clean = cached_data.get("title", "portfolio-project")
+                clean_slug = re.sub(r'[^a-zA-Z0-9]+', '-', title_clean.lower()).strip('-')[:45]
+                cached_data["id"] = clean_slug
+                cached_data["slug"] = clean_slug
             return cached_data
         self.misses += 1
         return None
@@ -158,21 +165,19 @@ def evaluate_senior_standing(
     }
 
 
-def synthesize_dynamic_blueprints(
-    target_role: str,
+def get_discipline_project_tracks(
+    discipline: str,
     missing_skills: List[str],
     matched_skills: List[str],
-    candidate_name: str = "Candidate"
+    target_role: str,
+    is_freshman: bool
 ) -> List[Dict[str, Any]]:
     """
-    Dynamically generates 3-4 custom portfolio project blueprints bridging the candidate's exact
-    missing skills for the target role. Leverages the persistent hash cache to prevent duplicate computation.
+    Returns authentic, discipline-accurate project archetype specifications.
+    Ensures Frontend developers get Component Design Systems and SSR Apps,
+    DevOps engineers get IaC and Kubernetes clusters, Data Analysts get BI and analytics models,
+    and AI engineers get RAG and agent gateways.
     """
-    # If no missing skills or candidate is senior, provide optional capstone
-    if not missing_skills:
-        missing_skills = ["Docker", "FastAPI", "PostgreSQL", "Redis"]
-
-    # Cluster missing skills by technical discipline
     dbs = [s for s in missing_skills if s in [
         "PostgreSQL", "MySQL", "SQLite", "MongoDB", "Redis", "Cassandra",
         "DynamoDB", "Snowflake", "BigQuery", "Elasticsearch", "Neo4j",
@@ -197,28 +202,190 @@ def synthesize_dynamic_blueprints(
         "Solidity", "HTML", "CSS"
     ]]
 
-    blueprints: List[Dict[str, Any]] = []
+    # 1. Frontend & UI
+    if discipline == "frontend_ui":
+        return [
+            {
+                "track": "Component Architecture & Design Systems",
+                "lead_skills": [s for s in missing_skills if s in ["React", "Vue", "Next.js", "TypeScript", "JavaScript"]] or ["React"],
+                "complement_skills": [s for s in missing_skills if s in ["Tailwind CSS", "CSS", "Vite", "HTML"]] or ["Tailwind CSS", "TypeScript"],
+                "difficulty": "Beginner" if is_freshman else "Intermediate",
+                "hours": 18 if is_freshman else 24,
+                "theme_template": "Accessible {primary} Component Design System & UI Library",
+                "slug_base": "design-system-ui-library"
+            },
+            {
+                "track": "Client State & Responsive Dashboard",
+                "lead_skills": [s for s in missing_skills if s in ["Next.js", "React", "Vue", "Redux"]] or ["Next.js"],
+                "complement_skills": ["TypeScript", "Tailwind CSS"],
+                "difficulty": "Intermediate",
+                "hours": 28,
+                "theme_template": "Real-Time {primary} Performance Dashboard & State Architecture",
+                "slug_base": "client-state-dashboard"
+            },
+            {
+                "track": "E2E Testing & Build Optimization",
+                "lead_skills": [s for s in missing_skills if s in ["Vite", "Webpack", "Git", "Postman"]] or ["Vite"],
+                "complement_skills": ["TypeScript", "Git", "HTML"],
+                "difficulty": "Intermediate",
+                "hours": 20,
+                "theme_template": "Modern {primary} Application Build & Automated Testing Suite",
+                "slug_base": "frontend-build-test-suite"
+            },
+            {
+                "track": "Production Web Platform",
+                "lead_skills": missing_skills[:2] or ["React", "TypeScript"],
+                "complement_skills": ["Tailwind CSS", "Git"],
+                "difficulty": "Advanced",
+                "hours": 32,
+                "theme_template": "Production-Grade {role} Portfolio Showcase Platform",
+                "slug_base": "frontend-portfolio-platform"
+            }
+        ]
 
-    # If freshman or candidate has <= 2 matched skills, scaffold a beginner stepping stone first
-    is_freshman = len(matched_skills) <= 2
+    # 2. DevOps & Platform Engineering
+    if discipline == "devops_platform":
+        return [
+            {
+                "track": "Infrastructure as Code & Cloud Automation",
+                "lead_skills": [s for s in missing_skills if s in ["Terraform", "AWS", "Google Cloud", "Azure", "Ansible"]] or ["Terraform"],
+                "complement_skills": ["Linux", "Git", "Bash"],
+                "difficulty": "Intermediate",
+                "hours": 24,
+                "theme_template": "Declarative {primary} Multi-Environment Infrastructure Pipeline",
+                "slug_base": "cloud-infrastructure-pipeline"
+            },
+            {
+                "track": "Containerization & Clustering",
+                "lead_skills": [s for s in missing_skills if s in ["Kubernetes", "Docker", "Helm", "Linux"]] or ["Docker"],
+                "complement_skills": ["Linux", "Git"],
+                "difficulty": "Intermediate",
+                "hours": 28,
+                "theme_template": "High-Availability {primary} Container Cluster & Ingress Gateway",
+                "slug_base": "container-cluster-gateway"
+            },
+            {
+                "track": "CI/CD & Release Hygiene",
+                "lead_skills": [s for s in missing_skills if s in ["GitHub Actions", "GitLab CI", "Jenkins", "Git"]] or ["GitHub Actions"],
+                "complement_skills": ["Docker", "Linux", "Bash"],
+                "difficulty": "Intermediate",
+                "hours": 20,
+                "theme_template": "Automated {primary} Continuous Delivery Pipeline & Security Gate",
+                "slug_base": "cicd-delivery-pipeline"
+            },
+            {
+                "track": "Observability & SRE",
+                "lead_skills": [s for s in missing_skills if s in ["Prometheus", "Grafana", "Linux"]] or ["Prometheus"],
+                "complement_skills": ["Docker", "Linux"],
+                "difficulty": "Advanced",
+                "hours": 26,
+                "theme_template": "Production-Grade {role} Observability & Alerting Stack",
+                "slug_base": "observability-telemetry-stack"
+            }
+        ]
+
+    # 3. Data Analytics & Business Intelligence
+    if discipline == "data_analytics":
+        return [
+            {
+                "track": "Executive BI & Dashboard Architecture",
+                "lead_skills": [s for s in missing_skills if s in ["Tableau", "Power BI", "Excel", "SQL"]] or ["Power BI"],
+                "complement_skills": ["SQL", "Python", "Pandas"],
+                "difficulty": "Beginner" if is_freshman else "Intermediate",
+                "hours": 18 if is_freshman else 24,
+                "theme_template": "Executive {primary} KPI Analytics & Business Intelligence Dashboard",
+                "slug_base": "bi-analytics-dashboard"
+            },
+            {
+                "track": "Statistical Modeling & Churn Analytics",
+                "lead_skills": [s for s in missing_skills if s in ["Pandas", "Python", "Scikit-learn", "SQL"]] or ["Pandas"],
+                "complement_skills": ["SQL", "Python", "NumPy"],
+                "difficulty": "Intermediate",
+                "hours": 28,
+                "theme_template": "Predictive {primary} Customer Churn & Cohort Retention Model",
+                "slug_base": "customer-churn-model"
+            },
+            {
+                "track": "Automated Data Harmonization & Quality",
+                "lead_skills": [s for s in missing_skills if s in ["SQL", "dbt", "Excel", "PostgreSQL"]] or ["SQL"],
+                "complement_skills": ["Python", "Pandas", "Git"],
+                "difficulty": "Intermediate",
+                "hours": 22,
+                "theme_template": "Automated {primary} Data Harmonization & Quality Verification Suite",
+                "slug_base": "data-harmonization-suite"
+            },
+            {
+                "track": "Strategic Domain Modeling",
+                "lead_skills": missing_skills[:2] or ["SQL", "Python"],
+                "complement_skills": ["Pandas", "Excel", "Git"],
+                "difficulty": "Advanced",
+                "hours": 30,
+                "theme_template": "Strategic {role} Financial & Operational Forecast Engine",
+                "slug_base": "operational-forecast-engine"
+            }
+        ]
+
+    # 4. AI Agents & Machine Learning
+    if discipline in ["ai_agents", "ml_engineering"]:
+        return [
+            {
+                "track": "RAG & Vector Search Architecture",
+                "lead_skills": [s for s in missing_skills if s in ["LangChain", "LlamaIndex", "Pinecone", "ChromaDB", "Milvus"]] or ["LangChain"],
+                "complement_skills": ["FastAPI", "Python", "Docker"],
+                "difficulty": "Intermediate",
+                "hours": 26,
+                "theme_template": "High-Performance {primary} Retrieval-Augmented Generation (RAG) Engine",
+                "slug_base": "rag-retrieval-engine"
+            },
+            {
+                "track": "Autonomous Cognitive Agent Gateway",
+                "lead_skills": [s for s in missing_skills if s in ["FastAPI", "Hugging Face", "PyTorch", "Python"]] or ["FastAPI"],
+                "complement_skills": ["Python", "Docker", "Git"],
+                "difficulty": "Intermediate",
+                "hours": 30,
+                "theme_template": "Autonomous {primary} Cognitive Agent & Tool Calling Gateway",
+                "slug_base": "cognitive-agent-gateway"
+            },
+            {
+                "track": "Vector Caching & Semantic Indexing",
+                "lead_skills": [s for s in missing_skills if s in ["Redis", "Pinecone", "ChromaDB", "Elasticsearch"]] or ["Redis"],
+                "complement_skills": ["FastAPI", "Python", "Docker"],
+                "difficulty": "Intermediate",
+                "hours": 22,
+                "theme_template": "High-Throughput {primary} Semantic Cache & Embedding Store",
+                "slug_base": "semantic-cache-proxy"
+            },
+            {
+                "track": "Production AI Platform",
+                "lead_skills": missing_skills[:2] or ["Python", "FastAPI"],
+                "complement_skills": ["Docker", "Git", "PyTorch"],
+                "difficulty": "Advanced",
+                "hours": 36,
+                "theme_template": "Production-Grade {role} Intelligence Platform",
+                "slug_base": "ai-intelligence-platform"
+            }
+        ]
+
+    # 5. Default / Backend Systems & Fullstack General
     first_track = {
-        "track": "Foundational Stepping Stone & Test Suite",
+        "track": "Foundational Architecture & Automated Test Suite",
         "lead_skills": matched_skills[:1] or langs[:1] or ["Python"],
         "complement_skills": [s for s in missing_skills if s in ["SQLite", "pytest", "Git", "SQL"]] or missing_skills[:2],
         "difficulty": "Beginner",
         "hours": 16,
-        "theme_template": "Foundational {primary} Architecture & Automated Testing Suite"
+        "theme_template": "Foundational {primary} Architecture & Automated Testing Suite",
+        "slug_base": "foundational-test-suite"
     } if is_freshman else {
-        "track": "Data & Persistence Architecture",
+        "track": "Data Persistence & Microservices",
         "lead_skills": dbs or ["PostgreSQL"],
         "complement_skills": fws[:2] or ["FastAPI", "SQL"],
         "difficulty": "Intermediate",
         "hours": 28,
-        "theme_template": "High-Throughput {primary} Analytics & Persistence Engine"
+        "theme_template": "High-Throughput {primary} Analytics & Persistence Engine",
+        "slug_base": "analytics-persistence-engine"
     }
 
-    # Project Archetype Definitions tailored dynamically to missing clusters
-    archetypes = [
+    return [
         first_track,
         {
             "track": "Core Service & Application Layer",
@@ -226,7 +393,8 @@ def synthesize_dynamic_blueprints(
             "complement_skills": dbs[:1] or tools[:2] or ["Docker", "PostgreSQL"],
             "difficulty": "Intermediate",
             "hours": 32,
-            "theme_template": "Distributed {primary} Microservice with Automated Workflows"
+            "theme_template": "Distributed {primary} Microservice with Automated Workflows",
+            "slug_base": "distributed-microservice"
         },
         {
             "track": "Cloud, Infrastructure & CI/CD",
@@ -234,7 +402,8 @@ def synthesize_dynamic_blueprints(
             "complement_skills": langs[:1] or ["Python", "Linux"],
             "difficulty": "Intermediate",
             "hours": 24,
-            "theme_template": "Zero-Downtime {primary} Automation Pipeline & Telemetry"
+            "theme_template": "Zero-Downtime {primary} Automation Pipeline & Telemetry",
+            "slug_base": "automation-pipeline-telemetry"
         },
         {
             "track": "End-to-End Enterprise System",
@@ -242,15 +411,38 @@ def synthesize_dynamic_blueprints(
             "complement_skills": ["Docker", "FastAPI", "PostgreSQL"],
             "difficulty": "Advanced",
             "hours": 36,
-            "theme_template": "Production-Grade {role} Verification Platform"
+            "theme_template": "Production-Grade {role} Verification Platform",
+            "slug_base": "enterprise-verification-platform"
         }
     ]
+
+
+def synthesize_dynamic_blueprints(
+    target_role: str,
+    missing_skills: List[str],
+    matched_skills: List[str],
+    candidate_name: str = "Candidate",
+    experience_years: int = 1
+) -> List[Dict[str, Any]]:
+    """
+    Dynamically generates 3-4 custom portfolio project blueprints tailored to the candidate's exact
+    engineering discipline and missing skills. Leverages persistent cache and ensures clean repository slugs.
+    """
+    if not missing_skills:
+        missing_skills = ["Docker", "FastAPI", "PostgreSQL", "Redis"]
+
+    discipline = classify_role_archetype(target_role)
+    is_freshman = len(matched_skills) <= 2 or experience_years <= 1
+
+    archetypes = get_discipline_project_tracks(discipline, missing_skills, matched_skills, target_role, is_freshman)
+
+    blueprints: List[Dict[str, Any]] = []
 
     for idx, arch in enumerate(archetypes, 1):
         # 1. Compute Cache Key
         cache_key = blueprint_cache.compute_key(target_role, missing_skills, idx, is_freshman=is_freshman)
         start_time = time.time()
-        
+
         # 2. Check Cache
         cached_blueprint = blueprint_cache.get(cache_key)
         if cached_blueprint:
@@ -295,10 +487,12 @@ def synthesize_dynamic_blueprints(
             f"Milestone 4: Configure Docker containerization, health probes (/health/live, /health/ready), and CI/CD pipelines"
         ]
 
-        # Generate runnable starter code files
         starter_files = _generate_dynamic_starter_code(title, combined_stack, roadmap, target_role)
 
-        slug = re.sub(r'[^a-zA-Z0-9_-]', '-', title.lower()).strip('-') or f"skillbridge-{cache_key}"
+        # Build clean, human-readable repository slug without hex hashes or triple hyphens
+        raw_slug = f"{clean_primary.lower()}-{arch.get('slug_base', 'portfolio-project')}"
+        slug = re.sub(r'[^a-zA-Z0-9]+', '-', raw_slug).strip('-')[:45]
+
         is_ds = any(
             k in target_role.lower() or k in title.lower() or any(k in t.lower() for t in combined_stack)
             for k in ["data", "ml", "machine learning", "ai", "pandas", "pytorch", "kaggle", "snowflake", "bigquery"]
@@ -315,7 +509,8 @@ def synthesize_dynamic_blueprints(
         ]
 
         new_blueprint = {
-            "id": cache_key,
+            "id": slug,
+            "cache_key": cache_key,
             "slug": slug,
             "title": title,
             "target_role": target_role,

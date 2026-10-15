@@ -326,29 +326,131 @@ def audit_resume_content(text: str, detected_skills: List[str]) -> Dict[str, Any
 
 def detect_experience_years(text: str) -> int:
     """
-    Estimates years of candidate technical experience using date patterns and keywords.
+    Estimates years of candidate technical experience.
+    Accurately isolates work experience from academic education dates,
+    recognizes student/fresher/intern indicators, and prevents false multi-year spans
+    from college enrollment periods.
     """
-    years_pattern = re.findall(r'(\d+)\+?\s+years?(?:\s+of)?\s+experience', text, re.IGNORECASE)
-    if years_pattern:
+    text_lower = text.lower()
+
+    # 1. Explicit fresher / student / zero-experience keywords
+    fresher_indicators = [
+        r'\bfresher\b',
+        r'\bentry[\s-]level\b',
+        r'\bstudent\b',
+        r'\bundergraduate\b',
+        r'\bgraduate student\b',
+        r'\bpursuing\s+(?:b\.?tech|b\.?e\.?|b\.?sc|m\.?tech|m\.?s\.?|bca|mca)\b',
+        r'\bexpected\s+graduation\b',
+        r'\bgraduation\s+year\s*:\s*202[4-9]\b',
+        r'\b0\s*(?:-\s*1)?\s*(?:years?|yrs?)(?:\s+of)?\s+experience\b',
+        r'\b(?:less\s+than|<)\s*1\s*(?:year|yr)\b',
+        r'\bno\s+prior\s+experience\b',
+    ]
+    for pattern in fresher_indicators:
+        if re.search(pattern, text_lower):
+            # Check if there's any conflicting senior job title
+            if not re.search(r'\b(?:senior|lead|principal|architect|manager|staff)\b', text_lower):
+                return 0
+
+    # 2. Check for explicit phrase: "<N>+ years of experience" or "<N> years experience"
+    exp_phrase_match = re.search(r'(?:over\s+|more\s+than\s+)?(\d+(?:\.\d+)?)\+?\s*(?:years?|yrs?)(?:\s+of)?\s+(?:professional\s+|work\s+)?experience', text_lower)
+    if exp_phrase_match:
         try:
-            found_years = [int(y) for y in years_pattern]
-            return max(found_years)
+            val = float(exp_phrase_match.group(1))
+            if val < 1:
+                return 0
+            return int(round(val))
         except ValueError:
             pass
 
-    # Heuristic: search for four-digit calendar years
-    current_year = 2026
-    year_numbers = [int(y) for y in re.findall(r'\b(20[0-2][0-9]|199[0-9])\b', text)]
-    if year_numbers:
-        earliest = min(year_numbers)
-        latest = max(year_numbers)
-        span = latest - earliest
-        if 0 < span <= 20:
-            return span
-        elif span == 0:
-            return 1
+    # 3. Check for months-only experience (e.g., "6 months internship", "3 months experience")
+    month_match = re.search(r'\b(\d+)\s*(?:months?|mos?)\s*(?:of\s+)?(?:internship|experience|work)', text_lower)
+    if month_match:
+        try:
+            months = int(month_match.group(1))
+            if months < 12:
+                return 0
+            return months // 12
+        except ValueError:
+            pass
 
-    return 2
+    # 4. Check for employment date ranges across text, strictly excluding education lines
+    lines = text.split("\n")
+    in_education = False
+    in_experience = False
+    work_date_ranges = []
+
+    edu_indicators = re.compile(
+        r'\b(?:education|academic(?:s|\s+background|\s+qualifications?)|degrees?|university|college|school|b\.?tech|b\.?e\.?|b\.?sc|m\.?tech|bachelor|master|cgpa|gpa|diploma|hsc|ssc)\b',
+        re.IGNORECASE
+    )
+    exp_header = re.compile(
+        r'^\s*(?:(?:work|professional|industry|relevant)\s+)?(?:experience|employment|work\s+history)\b',
+        re.IGNORECASE
+    )
+    edu_header = re.compile(
+        r'^\s*(?:education|academic(?:s|\s+background|\s+qualifications?)|degrees?)\b',
+        re.IGNORECASE
+    )
+    section_break = re.compile(
+        r'^\s*(?:projects?|technical\s+skills?|skills?|certifications?|achievements?|publications?|awards?|interests?)\b',
+        re.IGNORECASE
+    )
+
+    for line in lines:
+        cleaned_line = line.strip()
+        if not cleaned_line:
+            continue
+        if edu_header.match(cleaned_line):
+            in_education = True
+            in_experience = False
+            continue
+        elif exp_header.match(cleaned_line):
+            in_experience = True
+            in_education = False
+            continue
+        elif section_break.match(cleaned_line) and len(cleaned_line) < 40:
+            in_education = False
+            in_experience = False
+            continue
+
+        # If in an education section, skip all dates in this line
+        if in_education:
+            continue
+
+        # If the line mentions university, degree, b.tech, etc., skip it
+        if edu_indicators.search(cleaned_line) and not in_experience:
+            continue
+
+        # Find date ranges in this line
+        matches = re.findall(r'\b(20[0-2][0-9]|199[0-9])\s*(?:-|–|to)\s*(20[0-2][0-9]|present|current|now)\b', cleaned_line, re.IGNORECASE)
+        for start_y, end_y in matches:
+            is_intern = bool(re.search(r'\bintern(?:ship)?\b', cleaned_line, re.IGNORECASE))
+            work_date_ranges.append((int(start_y), end_y, is_intern))
+
+    if work_date_ranges:
+        current_year = 2026
+        max_span = 0
+        all_intern = all(item[2] for item in work_date_ranges)
+        for start_y, end_y, is_intern in work_date_ranges:
+            end_val = current_year if end_y.lower() in ["present", "current", "now"] else int(end_y)
+            span = max(0, end_val - start_y)
+            max_span = max(max_span, span)
+
+        if all_intern and max_span <= 1:
+            return 0
+        return min(max_span, 25)
+
+    # 5. Check if candidate has an education section with recent/future graduation and no exp section
+    edu_years = re.findall(r'\b(20[1-2][0-9])\b', text)
+    if edu_years:
+        max_year = max(int(y) for y in edu_years)
+        if max_year >= 2024:
+            return 0
+
+    # 6. Fallback for entry-level candidates
+    return 0
 
 def extract_skills_from_text(text: str) -> Dict[str, List[str]]:
     """

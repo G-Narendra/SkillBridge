@@ -370,25 +370,25 @@ ARCHETYPE_REGISTRY: Dict[str, Dict[str, Any]] = {
         "omitted_metrics": [],
         "dimensions": {
             "fullstack_languages": {
-                "label": "Fullstack Languages",
+                "label": "Languages",
                 "weight": 0.25,
                 "icon": "code",
                 "default_skills": ["TypeScript", "JavaScript", "Python", "SQL"]
             },
             "frontend_ui": {
-                "label": "Frontend UI & Client Architecture",
+                "label": "Frontend & UI",
                 "weight": 0.25,
                 "icon": "layers",
                 "default_skills": ["React", "Next.js", "FastAPI", "Node.js"]
             },
             "backend_services": {
-                "label": "Databases & Data Modeling",
+                "label": "Databases & Storage",
                 "weight": 0.25,
                 "icon": "database",
                 "default_skills": ["PostgreSQL", "MongoDB", "Redis"]
             },
             "databases_devops": {
-                "label": "DevOps & Deployment Pipelines",
+                "label": "DevOps & Cloud",
                 "weight": 0.25,
                 "icon": "wrench",
                 "default_skills": ["Docker", "Git", "GitHub Actions", "AWS"]
@@ -462,19 +462,63 @@ def get_role_archetype_definition(role_name: str) -> Dict[str, Any]:
 
 def build_dynamic_role_profile(
     role_name: str,
-    raw_profile: Optional[Dict[str, List[str]]] = None
+    raw_profile: Optional[Dict[str, List[str]]] = None,
+    experience_years: int = 1,
+    is_custom_jd: bool = False
 ) -> Tuple[Dict[str, List[str]], Dict[str, float], Dict[str, Any]]:
     """
     Constructs a role-calibrated dimension profile, dynamic weights, and archetype metadata.
-    Maps skills to the role's true domain dimensions rather than rigid 4 generic categories.
+    Supports experience-tiered benchmarks (Freshers 0-1 yrs evaluated on foundational skills;
+    Seniors 5+ yrs on full production architecture) and custom Job Description requirements.
     """
+    # 1. Custom Job Description Priority: Evaluate candidate directly against the extracted JD skills
+    if is_custom_jd and raw_profile:
+        active_dims: Dict[str, List[str]] = {}
+        for cat, skills in raw_profile.items():
+            clean_skills = [canonicalize_skill(s) for s in skills if s.strip()]
+            if clean_skills:
+                active_dims[cat] = sorted(list(dict.fromkeys(clean_skills)))
+
+        if active_dims:
+            total_dims = len(active_dims)
+            weight_per_dim = round(1.0 / total_dims, 2)
+            dynamic_weights = {k: weight_per_dim for k in active_dims.keys()}
+            diff = round(1.0 - sum(dynamic_weights.values()), 2)
+            if diff != 0:
+                first_k = list(dynamic_weights.keys())[0]
+                dynamic_weights[first_k] = round(dynamic_weights[first_k] + diff, 2)
+
+            label_map = {
+                "languages": "Languages",
+                "frameworks": "Frameworks",
+                "databases": "Databases & Storage",
+                "tools": "Tools & Cloud"
+            }
+
+            custom_archetype = {
+                "id": "custom_job_description",
+                "name": "Custom Job Description Benchmark",
+                "rationale": f"Qualifications evaluated strictly against the technical skills extracted directly from your custom job description.",
+                "omitted_metrics": [],
+                "dimensions": {
+                    k: {
+                        "label": label_map.get(k, k.replace("_", " ").title()),
+                        "weight": dynamic_weights[k],
+                        "icon": "code" if k == "languages" else "layers" if k == "frameworks" else "database" if k == "databases" else "wrench",
+                        "default_skills": active_dims[k]
+                    }
+                    for k in active_dims.keys()
+                }
+            }
+            return active_dims, dynamic_weights, custom_archetype
+
+    # 2. Standard Role Profile with Archetype Taxonomy
     archetype = get_role_archetype_definition(role_name)
     arch_dimensions = archetype["dimensions"]
 
     dynamic_profile: Dict[str, List[str]] = {}
     dynamic_weights: Dict[str, float] = {}
 
-    # If raw_profile provided (e.g. from role_profiles_465.json), map skills intelligently into archetype dimensions
     flat_skills: List[str] = []
     if raw_profile:
         for cat_skills in raw_profile.values():
@@ -488,15 +532,21 @@ def build_dynamic_role_profile(
         dynamic_weights[dim_key] = dim_cfg["weight"]
 
         if flat_skills:
-            # Map subset of skills proportionally to this dimension if matching defaults
             assigned = [s for s in flat_skills if s in dim_cfg["default_skills"]]
             if not assigned:
-                # Fallback to chunking skills across dimensions
                 chunk_size = max(1, len(flat_skills) // len(dimension_keys))
                 start_i = idx * chunk_size
                 assigned = flat_skills[start_i:start_i + chunk_size] or dim_cfg["default_skills"]
             dynamic_profile[dim_key] = list(dict.fromkeys(assigned))
         else:
             dynamic_profile[dim_key] = list(dict.fromkeys(dim_cfg["default_skills"]))
+
+    # 3. Experience-Tier Calibration:
+    # If candidate is a Fresher (<= 1 year), benchmark against core foundational skills (top 2-3 per dimension)
+    if experience_years <= 1:
+        for dim_key in dynamic_profile:
+            skills = dynamic_profile[dim_key]
+            if len(skills) > 3:
+                dynamic_profile[dim_key] = skills[:3]
 
     return dynamic_profile, dynamic_weights, archetype

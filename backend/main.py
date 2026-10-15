@@ -149,7 +149,12 @@ async def parse_and_analyze_resume(
         )
 
     candidate_skills = parsed_resume["skills"]
-    gap_result = analyze_gap(candidate_skills, target_job, custom_job_description=job_description)
+    gap_result = analyze_gap(
+        candidate_skills,
+        target_job,
+        custom_job_description=job_description,
+        experience_years=parsed_resume.get("experience_years", 1)
+    )
 
     session_id = str(uuid.uuid4())
 
