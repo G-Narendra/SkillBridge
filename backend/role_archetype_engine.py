@@ -436,10 +436,12 @@ def classify_role_archetype(role_name: str) -> str:
     """
     r = role_name.lower().strip()
 
-    # 0. Leadership, Advisory, Board, Executive & Strategy
+    # 0. Technology Leadership, Architecture Strategy & Advisory
     if any(k in r for k in [
-        "advisory", "board member", "advisor", "executive", "ceo", "cfo", "coo", "cmo",
-        "governance", "venture", "investor", "director", "strategist", "consultant"
+        "cto", "vp engineering", "vp of engineering", "head of engineering", "director of engineering",
+        "technical lead", "tech lead", "software architect", "enterprise architect", "solutions architect",
+        "system designer", "advisory", "board member", "advisor", "executive", "cso", "strategy", "strategist",
+        "governance", "tech leadership", "engineering leadership", "consultant"
     ]):
         return "tech_leadership_advisory"
 

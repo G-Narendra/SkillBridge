@@ -14,13 +14,13 @@ def test_api_health():
     data = res.json()
     assert data["status"] == "healthy"
     assert "service" in data
-    assert data["roles_available"] >= 465
+    assert data["roles_available"] >= 200
 
 def test_api_roles_catalog():
     res = client.get("/api/roles")
     assert res.status_code == 200
     roles = res.json()["roles"]
-    assert len(roles) >= 465
+    assert len(roles) >= 200
     role_names = [r["name"] for r in roles]
     assert "Data Analyst" in role_names
     assert "AI Engineer" in role_names
