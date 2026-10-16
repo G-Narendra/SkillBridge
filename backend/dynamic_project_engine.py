@@ -351,8 +351,8 @@ def get_discipline_project_tracks(
             }
         ]
 
-    # 4. AI Agents & Machine Learning
-    if discipline in ["ai_agents", "ml_engineering"]:
+    # 4. AI Agents & Intelligent Systems
+    if discipline == "ai_agents":
         return [
             {
                 "track": "RAG & Vector Search Architecture",
@@ -400,7 +400,350 @@ def get_discipline_project_tracks(
             }
         ]
 
-    # 5. Technology Leadership, Advisory & Architecture Strategy
+    # 5. Machine Learning & MLOps
+    if discipline == "ml_engineering":
+        return [
+            {
+                "track": "Supervised Learning Pipeline",
+                "lead_skills": [s for s in missing_skills if s in ["Scikit-learn", "Pandas", "NumPy", "Python"]] or ["Scikit-learn"],
+                "complement_skills": ["FastAPI", "Docker", "pytest"],
+                "difficulty": "Beginner" if is_freshman else "Intermediate",
+                "hours": 16 if is_freshman else 24,
+                "theme_template": "Production {primary} Model Training & Inference Pipeline",
+                "objective_template": "Develop a reproducible model training and evaluation pipeline with automated preprocessing and serialization using {primary}.",
+                "architecture_template": "ML pipeline separating feature engineering, hyperparameter tuning, and containerized REST serving.",
+                "slug_base": "ml-training-pipeline"
+            },
+            {
+                "track": "Deep Learning & Model Serving",
+                "lead_skills": [s for s in missing_skills if s in ["PyTorch", "TensorFlow", "ONNX"]] or ["PyTorch"],
+                "complement_skills": ["Docker", "FastAPI", "CUDA"],
+                "difficulty": "Intermediate",
+                "hours": 28,
+                "theme_template": "High-Throughput {primary} Inference & Model Optimization Engine",
+                "objective_template": "Train and optimize a deep learning neural network, export to ONNX runtime, and benchmark sub-15ms inference latency.",
+                "architecture_template": "Optimized neural network serving architecture utilizing {primary} and ONNX Runtime with dynamic batching.",
+                "slug_base": "deep-learning-serving"
+            },
+            {
+                "track": "Feature Store & Data Lineage",
+                "lead_skills": [s for s in missing_skills if s in ["Redis", "PostgreSQL", "SQL"]] or ["Redis"],
+                "complement_skills": ["Python", "Docker"],
+                "difficulty": "Intermediate",
+                "hours": 26,
+                "theme_template": "Low-Latency Online Feature Store with {primary}",
+                "objective_template": "Construct an online/offline feature store preventing training-serving skew with point-in-time correct lookups.",
+                "architecture_template": "Feature store architecture synchronizing batch feature definitions to an in-memory {primary} cache.",
+                "slug_base": "feature-store-engine"
+            },
+            {
+                "track": "Continuous MLOps & Drift Monitoring",
+                "lead_skills": missing_skills[:2] or ["Python", "Docker"],
+                "complement_skills": ["FastAPI", "Git"],
+                "difficulty": "Advanced",
+                "hours": 36,
+                "theme_template": "Automated MLOps Retraining & Data Drift Sentinel",
+                "objective_template": "Deploy a continuous ML monitoring service evaluating statistical distribution drift and triggering automated champion/challenger rollouts.",
+                "architecture_template": "Closed-loop MLOps architecture with Kolmogorov-Smirnov drift tests, automated model retraining, and canary deployment gates.",
+                "slug_base": "mlops-drift-sentinel"
+            }
+        ]
+
+    # 6. Data Engineering & Lakehouses
+    if discipline == "data_engineering":
+        return [
+            {
+                "track": "Distributed ETL & Batch Ingestion",
+                "lead_skills": [s for s in missing_skills if s in ["Apache Spark", "Python", "SQL", "dbt"]] or ["Apache Spark"],
+                "complement_skills": ["Docker", "Linux", "PostgreSQL"],
+                "difficulty": "Beginner" if is_freshman else "Intermediate",
+                "hours": 16 if is_freshman else 24,
+                "theme_template": "Distributed Batch Data Processing Engine with {primary}",
+                "objective_template": "Implement an automated data transformation and partitioning pipeline processing multi-gigabyte feeds with {primary}.",
+                "architecture_template": "Scalable ETL pipeline enforcing typed schemas, partition pruning, and transactional Delta/Parquet outputs.",
+                "slug_base": "distributed-batch-etl"
+            },
+            {
+                "track": "Streaming Ingestion & Columnar Storage",
+                "lead_skills": [s for s in missing_skills if s in ["Apache Kafka", "PostgreSQL", "Redis"]] or ["Apache Kafka"],
+                "complement_skills": ["Python", "Docker", "SQL"],
+                "difficulty": "Intermediate",
+                "hours": 28,
+                "theme_template": "Real-Time Event Stream Ingestion Engine with {primary}",
+                "objective_template": "Stream continuous event telemetry from Kafka partitions and micro-batch into high-throughput analytical tables.",
+                "architecture_template": "Event-driven streaming pipeline utilizing {primary} with consumer group lag tracking and dead-letter queue isolation.",
+                "slug_base": "stream-ingestion-engine"
+            },
+            {
+                "track": "Modern Data Stack & Analytics Engineering",
+                "lead_skills": [s for s in missing_skills if s in ["dbt", "Snowflake", "BigQuery", "SQL"]] or ["dbt", "SQL"],
+                "complement_skills": ["Python", "Git"],
+                "difficulty": "Intermediate",
+                "hours": 24,
+                "theme_template": "Modular Dimensional Analytics Warehouse with {primary}",
+                "objective_template": "Build a Kimball dimensional data warehouse using {primary} with automated schema tests and lineage documentation.",
+                "architecture_template": "Layered dimensional modeling architecture (Staging -> Intermediate -> Marts) with continuous data quality assertions.",
+                "slug_base": "dimensional-analytics-warehouse"
+            },
+            {
+                "track": "Enterprise Lakehouse & Data Governance",
+                "lead_skills": missing_skills[:2] or ["SQL", "Apache Spark"],
+                "complement_skills": ["Docker", "AWS", "Python"],
+                "difficulty": "Advanced",
+                "hours": 36,
+                "theme_template": "Open Lakehouse Architecture & Access Governance Gateway",
+                "objective_template": "Architect an Apache Iceberg lakehouse with distributed SQL query execution and dynamic column-level PII data masking.",
+                "architecture_template": "Lakehouse storage architecture with metadata manifests, automated compaction, and role-based access governance.",
+                "slug_base": "lakehouse-governance-gateway"
+            }
+        ]
+
+    # 7. Mobile Application Development
+    if discipline == "mobile_dev":
+        return [
+            {
+                "track": "Offline-First Mobile Architecture",
+                "lead_skills": [s for s in missing_skills if s in ["Kotlin", "Swift", "React", "TypeScript"]] or ["Kotlin"],
+                "complement_skills": ["SQLite", "Git"],
+                "difficulty": "Beginner" if is_freshman else "Intermediate",
+                "hours": 16 if is_freshman else 24,
+                "theme_template": "Offline-First Mobile Application with {primary} & Local Persistence",
+                "objective_template": "Construct a responsive mobile application with declarative UI, local database caching, and offline data synchronization.",
+                "architecture_template": "Modern mobile architecture utilizing {primary} with local SQLite persistence and reactive state flows.",
+                "slug_base": "offline-mobile-app"
+            },
+            {
+                "track": "Background Services & Media Streaming",
+                "lead_skills": [s for s in missing_skills if s in ["Kotlin", "Swift", "Android", "iOS"]] or ["Android"],
+                "complement_skills": ["Linux", "Git"],
+                "difficulty": "Intermediate",
+                "hours": 28,
+                "theme_template": "Foreground Media Playback Service with {primary}",
+                "objective_template": "Implement a battery-optimized background service handling audio streaming, lockscreen controls, and system interrupts.",
+                "architecture_template": "Native mobile service architecture handling operating system lifecycles, notification controls, and audio focus.",
+                "slug_base": "foreground-media-service"
+            },
+            {
+                "track": "Encrypted Mobile Data & Security",
+                "lead_skills": [s for s in missing_skills if s in ["Swift", "Kotlin", "Cryptography"]] or ["Swift"],
+                "complement_skills": ["SQLite", "Git"],
+                "difficulty": "Intermediate",
+                "hours": 26,
+                "theme_template": "Biometric Authentication & Encrypted Storage Client with {primary}",
+                "objective_template": "Secure mobile application credentials with biometric gates, hardware KeyStore/Keychain encryption, and secure network calls.",
+                "architecture_template": "Secure mobile client integrating hardware security modules and database-level encryption.",
+                "slug_base": "secure-biometric-mobile-app"
+            },
+            {
+                "track": "Real-Time Mobile Geospatial Platform",
+                "lead_skills": missing_skills[:2] or ["Kotlin", "Swift"],
+                "complement_skills": ["Redis", "Docker", "TypeScript"],
+                "difficulty": "Advanced",
+                "hours": 36,
+                "theme_template": "Real-Time Geospatial Driver Tracking & Dispatch Platform",
+                "objective_template": "Architect an adaptive GPS tracking app with Kalman location filtering and real-time WebSocket vehicle dispatch.",
+                "architecture_template": "Battery-aware background location tracking architecture transmitting coordinate deltas over persistent WebSockets.",
+                "slug_base": "geospatial-driver-tracking"
+            }
+        ]
+
+    # 8. Embedded Systems & Firmware
+    if discipline == "embedded_systems":
+        return [
+            {
+                "track": "Bare-Metal Driver & Hardware Registers",
+                "lead_skills": [s for s in missing_skills if s in ["C", "C++", "CMake", "Linux"]] or ["C"],
+                "complement_skills": ["Git", "Linux"],
+                "difficulty": "Beginner" if is_freshman else "Intermediate",
+                "hours": 16 if is_freshman else 22,
+                "theme_template": "Bare-Metal ARM Cortex Driver & Interrupt Engine in {primary}",
+                "objective_template": "Implement low-level hardware peripheral drivers directly programming memory-mapped registers and timer interrupts in {primary}.",
+                "architecture_template": "Bare-metal embedded architecture without OS overhead, configuring clock trees, GPIO lines, and hardware timer ISRs.",
+                "slug_base": "baremetal-driver-engine"
+            },
+            {
+                "track": "Real-Time Operating System (RTOS)",
+                "lead_skills": [s for s in missing_skills if s in ["C", "C++", "FreeRTOS"]] or ["C", "C++"],
+                "complement_skills": ["Linux", "CMake"],
+                "difficulty": "Intermediate",
+                "hours": 26,
+                "theme_template": "Multi-Tasking RTOS Sensor Node with FreeRTOS & {primary}",
+                "objective_template": "Architect a preemptive real-time sensor node coordinating concurrent tasks via thread-safe queues and hardware semaphores.",
+                "architecture_template": "FreeRTOS priority-scheduled task architecture isolating sensor acquisition, telemetry queues, and bus access.",
+                "slug_base": "rtos-sensor-node"
+            },
+            {
+                "track": "Automotive Protocols & CAN Bus",
+                "lead_skills": [s for s in missing_skills if s in ["C", "Python", "Linux"]] or ["C"],
+                "complement_skills": ["CMake", "Docker"],
+                "difficulty": "Intermediate",
+                "hours": 28,
+                "theme_template": "Automotive CAN Bus Telemetry Logger & Protocol Decoder",
+                "objective_template": "Develop a CAN bus transceiver driver logging vehicle telemetry to persistent flash with DBC decoding in Python.",
+                "architecture_template": "Embedded CAN listener with hardware acceptance filters, ring-buffered logging, and SocketCAN analysis tools.",
+                "slug_base": "canbus-telemetry-logger"
+            },
+            {
+                "track": "Linux Kernel Driver & Mission-Critical Safety",
+                "lead_skills": missing_skills[:2] or ["C", "C++"],
+                "complement_skills": ["Linux", "CMake", "Git"],
+                "difficulty": "Advanced",
+                "hours": 38,
+                "theme_template": "Embedded Linux Kernel Driver & Hard Real-Time Controller",
+                "objective_template": "Author a custom Linux character device driver with Device Tree bindings and deterministic closed-loop motor control.",
+                "architecture_template": "Linux kernel module implementing character nodes, sysfs controls, DMA sampling, and window watchdog supervision.",
+                "slug_base": "kernel-driver-controller"
+            }
+        ]
+
+    # 9. Blockchain & Web3 Protocols
+    if discipline == "blockchain_web3":
+        return [
+            {
+                "track": "Smart Contract Architecture & Staking",
+                "lead_skills": [s for s in missing_skills if s in ["Solidity", "Rust", "Git"]] or ["Solidity"],
+                "complement_skills": ["Docker", "Linux"],
+                "difficulty": "Beginner" if is_freshman else "Intermediate",
+                "hours": 16 if is_freshman else 22,
+                "theme_template": "Gas-Optimized ERC-20 Staking Protocol in {primary} with Foundry",
+                "objective_template": "Author secure, gas-efficient smart contracts with time-locked staking pools and automated fuzz testing.",
+                "architecture_summary": "Solidity smart contract suite utilizing Foundry for invariant property testing, gas benchmarks, and reentrancy defense.",
+                "slug_base": "smart-contract-staking"
+            },
+            {
+                "track": "Decentralized Finance (DeFi) & AMM",
+                "lead_skills": [s for s in missing_skills if s in ["Solidity", "TypeScript"]] or ["Solidity"],
+                "complement_skills": ["Docker", "Git"],
+                "difficulty": "Intermediate",
+                "hours": 28,
+                "theme_template": "Automated Market Maker (AMM) Liquidity Pool with {primary}",
+                "objective_template": "Construct a constant-product (x*y=k) decentralized liquidity exchange with slippage protection and LP share minting.",
+                "architecture_template": "DeFi smart contract architecture implementing constant-product invariants, TWAP price accumulators, and flash swaps.",
+                "slug_base": "amm-liquidity-pool"
+            },
+            {
+                "track": "Blockchain Indexing & Subgraphs",
+                "lead_skills": [s for s in missing_skills if s in ["Rust", "SQL", "PostgreSQL"]] or ["Rust", "SQL"],
+                "complement_skills": ["Docker", "Git"],
+                "difficulty": "Intermediate",
+                "hours": 26,
+                "theme_template": "High-Speed EVM Event Log Indexer & GraphQL Subgraph in {primary}",
+                "objective_template": "Stream real-time blockchain event logs, handle chain reorganizations, and index relational activity for fast queries.",
+                "architecture_template": "High-throughput blockchain indexing service reading JSON-RPC streams, decoding ABI topics, and serving GraphQL queries.",
+                "slug_base": "blockchain-event-indexer"
+            },
+            {
+                "track": "Cross-Chain Bridges & Account Abstraction",
+                "lead_skills": missing_skills[:2] or ["Solidity", "Rust"],
+                "complement_skills": ["Docker", "TypeScript"],
+                "difficulty": "Advanced",
+                "hours": 38,
+                "theme_template": "ERC-4337 Account Abstraction Wallet & Cross-Chain Bridge",
+                "objective_template": "Deploy an ERC-4337 smart contract wallet supporting gasless transactions and cryptographic cross-chain token relaying.",
+                "architecture_template": "Account abstraction infrastructure with custom EntryPoint validation, Paymaster gas sponsorship, and M-of-N relayer verification.",
+                "slug_base": "account-abstraction-bridge"
+            }
+        ]
+
+    # 10. Marketplace Systems & Algorithmic Engineering
+    if discipline == "marketplace_systems":
+        return [
+            {
+                "track": "Two-Sided Matching & Geospatial Dispatch",
+                "lead_skills": [s for s in missing_skills if s in ["Python", "FastAPI", "Redis", "PostgreSQL"]] or ["Python", "FastAPI"],
+                "complement_skills": ["SQL", "Docker", "pytest"],
+                "difficulty": "Beginner" if is_freshman else "Intermediate",
+                "hours": 18 if is_freshman else 24,
+                "theme_template": "Two-Sided Marketplace Matching API with Redis Geospatial Indexing",
+                "objective_template": "Index provider locations using Redis geospatial keys and match incoming customer requests to nearest qualified providers within radius.",
+                "architecture_template": "FastAPI REST API with Redis GEO spatial queries and transactional reservation state machines.",
+                "slug_base": "marketplace-geospatial-matching"
+            },
+            {
+                "track": "Dynamic Surge Pricing & Elasticity",
+                "lead_skills": [s for s in missing_skills if s in ["Python", "Redis", "Pandas", "FastAPI"]] or ["Python", "Redis"],
+                "complement_skills": ["Docker", "SQL"],
+                "difficulty": "Intermediate",
+                "hours": 28,
+                "theme_template": "Real-Time Supply-Demand Surge Pricing & Elasticity Engine",
+                "objective_template": "Calculate localized surge multipliers in real time based on demand-supply ratios to clear marketplace liquidity.",
+                "architecture_template": "Sliding-window pricing engine computing elasticity price multipliers across geofenced zones.",
+                "slug_base": "marketplace-surge-pricing"
+            },
+            {
+                "track": "Multi-Party Escrow & Split Payments",
+                "lead_skills": [s for s in missing_skills if s in ["PostgreSQL", "FastAPI", "SQL", "Python"]] or ["PostgreSQL", "FastAPI"],
+                "complement_skills": ["Docker", "Git"],
+                "difficulty": "Intermediate",
+                "hours": 30,
+                "theme_template": "Multi-Party Marketplace Escrow & Ledger Service",
+                "objective_template": "Manage two-phase payment intents, deduct platform commissions, and release vendor payouts with double-entry accounting.",
+                "architecture_template": "Payment orchestration engine managing multi-party escrow states, automated fee splits, and idempotent webhooks.",
+                "slug_base": "marketplace-escrow-ledger"
+            },
+            {
+                "track": "Sponsored Auction & Fraud Graph Mesh",
+                "lead_skills": missing_skills[:2] or ["Python", "FastAPI"],
+                "complement_skills": ["Redis", "PostgreSQL", "Docker"],
+                "difficulty": "Advanced",
+                "hours": 36,
+                "theme_template": "Generalized Second-Price Auction & Fraud Detection Mesh",
+                "objective_template": "Run real-time Generalized Second-Price (GSP) ad placement auctions and detect circular wash trading collusion rings.",
+                "architecture_template": "Sub-20ms in-memory auction engine coupled with graph network anomaly detection flagging multi-account fraud.",
+                "slug_base": "auction-fraud-detection-mesh"
+            }
+        ]
+
+    # 11. Fullstack General Engineering
+    if discipline == "fullstack_general":
+        return [
+            {
+                "track": "Modern Web Application Architecture",
+                "lead_skills": [s for s in missing_skills if s in ["Next.js", "React", "TypeScript", "Tailwind CSS"]] or ["Next.js", "TypeScript"],
+                "complement_skills": ["SQLite", "Git"],
+                "difficulty": "Beginner" if is_freshman else "Intermediate",
+                "hours": 16 if is_freshman else 22,
+                "theme_template": "Full-Stack {primary} Application with Server Components & Typed Actions",
+                "objective_template": "Construct an end-to-end web application with React Server Components, type-safe data mutations, and responsive UI.",
+                "architecture_template": "Modern fullstack architecture utilizing Next.js 14 App Router, Server Actions, and accessible component styling.",
+                "slug_base": "fullstack-web-platform"
+            },
+            {
+                "track": "Real-Time Collaboration & State Synchronization",
+                "lead_skills": [s for s in missing_skills if s in ["React", "TypeScript", "Redis", "Next.js"]] or ["React", "Redis"],
+                "complement_skills": ["Docker", "Git"],
+                "difficulty": "Intermediate",
+                "hours": 28,
+                "theme_template": "Real-Time Collaborative Platform with {primary} & WebSockets",
+                "objective_template": "Build a multi-user collaborative workspace with live WebSocket event streaming, cursor tracking, and presence indicators.",
+                "architecture_template": "Fullstack collaborative architecture utilizing WebSockets and Redis Pub/Sub for horizontal synchronization across nodes.",
+                "slug_base": "realtime-collaborative-workspace"
+            },
+            {
+                "track": "Multi-Tenant SaaS & Data Persistence",
+                "lead_skills": [s for s in missing_skills if s in ["PostgreSQL", "FastAPI", "React", "Docker"]] or ["PostgreSQL", "FastAPI"],
+                "complement_skills": ["SQL", "Git"],
+                "difficulty": "Intermediate",
+                "hours": 26,
+                "theme_template": "Multi-Tenant B2B SaaS Platform with {primary} & Row-Level Security",
+                "objective_template": "Implement tenant data isolation, role-based access control (RBAC), and team workspace invitation workflows.",
+                "architecture_template": "Layered SaaS architecture with database Row-Level Security, JWT authentication claims, and administrative consoles.",
+                "slug_base": "multitenant-saas-platform"
+            },
+            {
+                "track": "Production E-Commerce & Event Architecture",
+                "lead_skills": missing_skills[:2] or ["TypeScript", "Next.js"],
+                "complement_skills": ["PostgreSQL", "Docker", "Tailwind CSS"],
+                "difficulty": "Advanced",
+                "hours": 36,
+                "theme_template": "Enterprise E-Commerce Engine with Checkout & Inventory Consistency",
+                "objective_template": "Ship a production web platform handling transactional inventory locks, payment checkout, and full-text search indexing.",
+                "architecture_template": "Enterprise fullstack architecture utilizing PostgreSQL row-level locks, webhook idempotency, and search indexing.",
+                "slug_base": "enterprise-ecommerce-engine"
+            }
+        ]
+
+    # 12. Technology Leadership, Advisory & Architecture Strategy
     if discipline == "tech_leadership_advisory":
         return [
             {
@@ -449,7 +792,7 @@ def get_discipline_project_tracks(
             }
         ]
 
-    # 6. Cybersecurity, Ethical Hacking & Application Security
+    # 13. Cybersecurity, Ethical Hacking & Application Security
     if discipline == "security_cyber":
         return [
             {
@@ -498,7 +841,7 @@ def get_discipline_project_tracks(
             }
         ]
 
-    # 7. Default / Backend Systems & Software Engineering
+    # 14. Default / Backend Systems & Software Engineering
     first_track = {
         "track": "Foundational Architecture & Automated Test Suite",
         "lead_skills": matched_skills[:1] or langs[:1] or ["Python"],

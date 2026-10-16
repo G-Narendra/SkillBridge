@@ -1946,6 +1946,13 @@ TEN_PROJECT_MATRICES: Dict[str, List[Dict[str, Any]]] = {
     ]
 }
 
+# Merge matrices for data_engineering, ml_engineering, mobile_dev, embedded_systems, blockchain_web3, fullstack_general
+try:
+    from discipline_project_matrices import ADDITIONAL_PROJECT_MATRICES
+    TEN_PROJECT_MATRICES.update(ADDITIONAL_PROJECT_MATRICES)
+except ImportError:
+    pass
+
 
 def get_projects_for_discipline(discipline: str) -> List[Dict[str, Any]]:
     """Returns the 10-project matrix for a given engineering discipline."""

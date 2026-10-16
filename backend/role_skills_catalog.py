@@ -355,40 +355,115 @@ TECH_ROLES_TAXONOMY: Dict[str, Dict[str, Any]] = {
             "mid_level": {"target_score": 80, "focus": "Cross-team RFC governance, tech debt prioritization, cloud infrastructure cost audits"},
             "senior": {"target_score": 90, "focus": "Enterprise tech vision, multi-year product roadmapping, board-level technical defense"}
         }
+    },
+    "Mobile Developer": {
+        "discipline": "mobile_dev",
+        "archetype": "mobile_dev",
+        "description": "Constructs native and cross-platform mobile applications, reactive UI layouts, client state persistence, and app store release pipelines.",
+        "technical_stack": {
+            "languages": ["Swift", "Kotlin", "TypeScript", "JavaScript"],
+            "frameworks": ["React Native", "Flutter", "SwiftUI", "Jetpack Compose"],
+            "databases": ["SQLite", "Room", "CoreData", "Firebase"],
+            "tools": ["Git", "GitHub Actions", "Xcode", "Android Studio", "Fastlane", "Postman"]
+        },
+        "non_technical_competencies": [
+            "Mobile App Lifecycle & Memory Optimization",
+            "Offline-First Sync & Conflict Resolution",
+            "App Store Guidelines & Release Hygiene",
+            "Mobile Analytics, Crash Reporting & User Privacy"
+        ],
+        "experience_benchmarks": {
+            "fresher": {"target_score": 70, "focus": "Clean UI components, basic navigation, REST API integration, local SQLite storage"},
+            "mid_level": {"target_score": 80, "focus": "State management (Redux/Combine), background tasks, push notifications, offline caching"},
+            "senior": {"target_score": 85, "focus": "Mobile architecture modularity, app launch time profiling, automated Fastlane CI/CD matrix"}
+        }
+    },
+    "Embedded Systems Engineer": {
+        "discipline": "embedded_systems",
+        "archetype": "embedded_systems",
+        "description": "Develops bare-metal firmware, real-time operating system (RTOS) tasks, low-level device drivers, and hardware communication protocols.",
+        "technical_stack": {
+            "languages": ["C", "C++", "Rust", "Assembly", "Bash"],
+            "frameworks": ["FreeRTOS", "Zephyr", "Embedded Linux"],
+            "databases": ["SQLite", "EEPROM", "Flash File Systems"],
+            "tools": ["Git", "GDB", "Make", "CMake", "Oscilloscope", "Logic Analyzer", "Docker"]
+        },
+        "non_technical_competencies": [
+            "Real-Time Determinism & Safety-Critical Engineering",
+            "Hardware-Software Co-Design & Schematic Interpretation",
+            "Memory Footprint & Ultra-Low-Power Budgeting",
+            "Hardware Telemetry, Logic Analysis & In-Circuit Debugging"
+        ],
+        "experience_benchmarks": {
+            "fresher": {"target_score": 70, "focus": "C syntax, GPIO/UART peripherals, basic interrupt handling, register bit-masking"},
+            "mid_level": {"target_score": 80, "focus": "FreeRTOS tasks and queues, SPI/I2C/CAN bus drivers, memory-mapped I/O, DMA transfers"},
+            "senior": {"target_score": 85, "focus": "Secure bootloaders with ECDSA, Linux kernel character drivers, hard real-time scheduling"}
+        }
+    },
+    "Blockchain Developer": {
+        "discipline": "blockchain_web3",
+        "archetype": "blockchain_web3",
+        "description": "Designs and audits smart contracts, decentralized finance (DeFi) protocols, cryptographic primitives, and Web3 RPC indexers.",
+        "technical_stack": {
+            "languages": ["Solidity", "Rust", "TypeScript", "JavaScript"],
+            "frameworks": ["Foundry", "Hardhat", "Ethers.js", "Viem", "Next.js"],
+            "databases": ["The Graph", "PostgreSQL", "IPFS", "Redis"],
+            "tools": ["Git", "Slither", "Docker", "MetaMask", "Linux"]
+        },
+        "non_technical_competencies": [
+            "Smart Contract Security & Reentrancy Defenses",
+            "EVM Gas Optimization & Opcode Economics",
+            "Decentralized Protocol Governance & Technical RFCs",
+            "Cryptographic Key Management & Multi-Sig Custody"
+        ],
+        "experience_benchmarks": {
+            "fresher": {"target_score": 70, "focus": "ERC-20/ERC-721 token standards, Solidity syntax, basic unit tests with Foundry"},
+            "mid_level": {"target_score": 80, "focus": "Automated AMM constant product math, Slither static analysis, subgraph event indexing"},
+            "senior": {"target_score": 85, "focus": "Cross-chain bridges, account abstraction (ERC-4337), formal verification, MEV resistance"}
+        }
     }
+}
+
+DISCIPLINE_FLAGSHIP_ROLES: Dict[str, str] = {
+    "marketplace_systems": "Marketplace Engineer",
+    "backend_systems": "Backend Engineer",
+    "frontend_ui": "Frontend Engineer",
+    "fullstack_general": "Fullstack Engineer",
+    "data_analytics": "Data Analyst",
+    "data_engineering": "Data Engineer",
+    "devops_platform": "DevOps Engineer",
+    "security_cyber": "Security Engineer",
+    "ai_agents": "AI Agent Engineer",
+    "ml_engineering": "Machine Learning Engineer",
+    "mobile_dev": "Mobile Developer",
+    "embedded_systems": "Embedded Systems Engineer",
+    "blockchain_web3": "Blockchain Developer",
+    "tech_leadership_advisory": "CTO"
 }
 
 
 def get_role_taxonomy(role_name: str) -> Dict[str, Any]:
-    """Retrieves standard taxonomy metadata for a role, with fuzzy fallback."""
+    """Retrieves standard taxonomy metadata for a role, with discipline archetype fallback."""
     if role_name in TECH_ROLES_TAXONOMY:
         return TECH_ROLES_TAXONOMY[role_name]
     
     r_low = role_name.lower().strip()
     for r_k, r_val in TECH_ROLES_TAXONOMY.items():
-        if r_k.lower() in r_low or r_low in r_k.lower():
+        if r_k.lower() == r_low or r_k.lower() in r_low or r_low in r_k.lower():
             return r_val
             
-    # Default fallback for uncataloged software engineering roles
-    return {
-        "discipline": "fullstack_general",
-        "archetype": "fullstack_general",
-        "description": f"Engineering role delivering software solutions for {role_name}.",
-        "technical_stack": {
-            "languages": ["Python", "TypeScript", "SQL"],
-            "frameworks": ["FastAPI", "React"],
-            "databases": ["PostgreSQL", "Redis"],
-            "tools": ["Docker", "Git", "Linux", "pytest"]
-        },
-        "non_technical_competencies": [
-            "System Design & Tradeoff Analysis",
-            "Code Review & Git Hygiene",
-            "Technical Documentation & RFCs",
-            "Security Mindset & Data Governance"
-        ],
-        "experience_benchmarks": {
-            "fresher": {"target_score": 70, "focus": "Clean code syntax, basic test coverage, git version control"},
-            "mid_level": {"target_score": 80, "focus": "Layered architecture, Docker containerization, CI/CD pipelines"},
-            "senior": {"target_score": 85, "focus": "Distributed systems, scalability, resilience, architecture decision records"}
-        }
-    }
+    # Discipline-aware fallback for uncataloged technical roles
+    try:
+        from role_archetype_engine import classify_role_archetype
+        discipline = classify_role_archetype(role_name)
+        flagship_role = DISCIPLINE_FLAGSHIP_ROLES.get(discipline, "Fullstack Engineer")
+        if flagship_role in TECH_ROLES_TAXONOMY:
+            base_tax = TECH_ROLES_TAXONOMY[flagship_role]
+            return {
+                **base_tax,
+                "description": f"Engineering role delivering {discipline.replace('_', ' ')} solutions for {role_name}."
+            }
+    except Exception:
+        pass
+
+    return TECH_ROLES_TAXONOMY["Fullstack Engineer"]
