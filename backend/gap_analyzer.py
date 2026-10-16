@@ -22,6 +22,7 @@ from role_archetype_engine import (
     get_role_archetype_definition,
     ARCHETYPE_REGISTRY
 )
+from role_skills_catalog import get_role_taxonomy, TECH_ROLES_TAXONOMY
 
 load_dotenv()
 logger = logging.getLogger("skillbridge.analyzer")
@@ -745,12 +746,36 @@ def analyze_gap(
     if "tools" not in category_breakdown and len(dim_keys) > 2:
         category_breakdown["tools"] = category_breakdown[dim_keys[-1]]
 
-    # Transparent Benchmark Standard
+    # Transparent Benchmark Standard with Experience Tiering & Non-Tech Competencies
+    role_tax = get_role_taxonomy(target_role)
+    exp_benchmarks = role_tax.get("experience_benchmarks", {})
+    if experience_years <= 1:
+        exp_tier = "fresher"
+        exp_label = "Entry-Level / Fresher"
+    elif experience_years <= 4:
+        exp_tier = "mid_level"
+        exp_label = "Mid-Level Professional"
+    else:
+        exp_tier = "senior"
+        exp_label = "Senior / Staff Engineer"
+    
+    exp_cfg = exp_benchmarks.get(exp_tier, {"target_score": 80, "focus": "Industry standard engineering expectations"})
+    percentile_target = exp_cfg.get("target_score", 80)
+    exp_focus = exp_cfg.get("focus", "Production-grade system reliability and architecture")
+
+    standard_name = f"{target_role} Custom Job Description Standards" if is_custom_jd else f"{target_role} Benchmark Standards"
+    sample_size = "Custom JD Requirements & Skill Matrix" if is_custom_jd else f"Industry engineering expectations ({exp_label})"
+    comparison_source = "Pasted Job Description criteria" if is_custom_jd else "Verified industry technical rubrics & production standards"
+
     benchmark_standard = {
-        "standard_name": f"{target_role} Benchmark Standards",
-        "sample_size": "Industry engineering role expectations",
-        "comparison_source": "Verified technical skill rubrics and production requirements",
-        "percentile_threshold": 80,
+        "standard_name": standard_name,
+        "sample_size": sample_size,
+        "comparison_source": comparison_source,
+        "percentile_threshold": percentile_target,
+        "experience_tier": exp_tier,
+        "experience_label": exp_label,
+        "experience_focus": exp_focus,
+        "non_technical_competencies": role_tax.get("non_technical_competencies", []),
         "required_distribution": dynamic_profile,
         "tier_weights": dynamic_weights,
         "archetype_id": archetype_meta.get("id"),

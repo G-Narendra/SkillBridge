@@ -14,6 +14,8 @@ import hashlib
 from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
 from role_archetype_engine import classify_role_archetype
+from ten_project_catalog import get_projects_for_discipline, TEN_PROJECT_MATRICES
+from role_skills_catalog import get_role_taxonomy
 
 # Locate workspace root outputs directory
 _curr = Path(__file__).resolve().parent
@@ -56,7 +58,7 @@ class BlueprintCacheManager:
     def compute_key(self, role: str, missing_skills: List[str], project_index: int, is_freshman: bool = False) -> str:
         clean_role = role.strip().lower()
         clean_skills = ":".join(sorted([s.strip().lower() for s in missing_skills]))
-        raw = f"v4|{clean_role}|{clean_skills}|{project_index}|{'freshman' if is_freshman else 'standard'}"
+        raw = f"v6|{clean_role}|{clean_skills}|{project_index}|{'freshman' if is_freshman else 'standard'}"
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
     def get(self, key: str) -> Optional[Dict[str, Any]]:
@@ -508,6 +510,79 @@ def get_discipline_project_tracks(
     ]
 
 
+def select_gap_matching_projects(
+    target_role: str,
+    missing_skills: List[str],
+    matched_skills: List[str],
+    experience_years: int = 2,
+    count: int = 4
+) -> List[Dict[str, Any]]:
+    """
+    Selects the closest matching production-grade projects from the 10-project matrix
+    that specifically target and bridge the candidate's identified skill gaps,
+    calibrated to their professional experience tier (Fresher, Mid-Level, Senior).
+    """
+    discipline = classify_role_archetype(target_role)
+    matrix = get_projects_for_discipline(discipline)
+    if not matrix:
+        matrix = get_projects_for_discipline("backend_systems")
+
+    is_fresher = experience_years <= 1 or len(matched_skills) <= 1
+    is_senior = experience_years >= 5
+
+    clean_missing = [s.strip().lower() for s in missing_skills]
+    clean_matched = [s.strip().lower() for s in matched_skills]
+
+    scored = []
+    for proj in matrix:
+        score = 0.0
+        covered = []
+        for sk in proj.get("primary_skills", []):
+            sk_low = sk.strip().lower()
+            if any(m in sk_low or sk_low in m for m in clean_missing):
+                score += 20.0  # Dominant priority: Directly bridges a missing gap
+                covered.append(sk)
+            elif any(m in sk_low or sk_low in m for m in clean_matched):
+                score += 3.0   # Synergistic value: builds on candidate's existing strengths
+
+        diff = proj.get("difficulty", "Intermediate")
+        if is_fresher:
+            if diff == "Beginner":
+                score += 12.0
+            elif diff == "Intermediate":
+                score += 6.0
+            else:
+                score += 1.0
+        elif is_senior:
+            if diff == "Advanced":
+                score += 12.0
+            elif diff == "Intermediate":
+                score += 6.0
+            else:
+                score += 1.0
+        else: # Mid-level
+            if diff == "Intermediate":
+                score += 12.0
+            elif diff == "Advanced":
+                score += 6.0
+            else:
+                score += 4.0
+
+        scored.append((score, covered, proj))
+
+    # Sort descending by score
+    scored.sort(key=lambda x: x[0], reverse=True)
+
+    selected = []
+    for score, covered, proj in scored[:count]:
+        p_copy = dict(proj)
+        p_copy["gap_match_score"] = round(score, 1)
+        p_copy["skills_addressed"] = covered if covered else p_copy.get("primary_skills", [])[:2]
+        selected.append(p_copy)
+
+    return selected
+
+
 def synthesize_dynamic_blueprints(
     target_role: str,
     missing_skills: List[str],
@@ -517,19 +592,26 @@ def synthesize_dynamic_blueprints(
 ) -> List[Dict[str, Any]]:
     """
     Dynamically generates 3-4 custom portfolio project blueprints tailored to the candidate's exact
-    engineering discipline and missing skills. Leverages persistent cache and ensures clean repository slugs.
+    engineering discipline and missing skills from the 10-project matrix.
+    Leverages persistent cache and ensures clean repository slugs.
     """
     if not missing_skills:
         missing_skills = ["Docker", "FastAPI", "PostgreSQL", "Redis"]
 
-    discipline = classify_role_archetype(target_role)
     is_freshman = len(matched_skills) <= 2 or experience_years <= 1
 
-    archetypes = get_discipline_project_tracks(discipline, missing_skills, matched_skills, target_role, is_freshman)
+    # Select closest matching production-level projects from the 10-project matrix
+    matched_projects = select_gap_matching_projects(
+        target_role=target_role,
+        missing_skills=missing_skills,
+        matched_skills=matched_skills,
+        experience_years=experience_years,
+        count=4
+    )
 
     blueprints: List[Dict[str, Any]] = []
 
-    for idx, arch in enumerate(archetypes, 1):
+    for idx, proj in enumerate(matched_projects, 1):
         # 1. Compute Cache Key
         cache_key = blueprint_cache.compute_key(target_role, missing_skills, idx, is_freshman=is_freshman)
         start_time = time.time()
@@ -541,68 +623,33 @@ def synthesize_dynamic_blueprints(
             blueprints.append(cached_blueprint)
             continue
 
-        # 3. Cache Miss: Dynamically Synthesize
-        primary = arch["lead_skills"][0] if arch["lead_skills"] else "Python"
-        combined_stack = list(dict.fromkeys(arch["lead_skills"] + arch["complement_skills"]))
+        # 3. Cache Miss: Build rich production-grade blueprint
+        title = proj.get("title", f"{target_role} Architecture Platform")
+        combined_stack = proj.get("primary_skills", [])
         if len(combined_stack) < 3:
-            combined_stack.extend(["Docker", "FastAPI", "Git"])
-        combined_stack = combined_stack[:5]
+            combined_stack = list(dict.fromkeys(combined_stack + ["Docker", "Git", "pytest"]))
 
-        clean_primary = primary.replace(".", "")
-        clean_role_title = target_role.replace("Senior", "").replace("Junior", "").strip()
-
-        if "{role}" in arch["theme_template"]:
-            title = arch["theme_template"].format(role=clean_role_title)
-        else:
-            title = arch["theme_template"].format(primary=clean_primary)
-
-        # Build dynamic objective and architectural pattern
-        targeted_gaps = [s for s in missing_skills if s in combined_stack]
-        if not targeted_gaps:
-            targeted_gaps = combined_stack[:2]
-
-        if "objective_template" in arch:
-            objective = arch["objective_template"].format(primary=clean_primary, role=clean_role_title)
-        else:
-            objective = f"Production-grade project developing a verified system utilizing {clean_primary}."
-
-        if "architecture_template" in arch:
-            architecture = arch["architecture_template"].format(primary=clean_primary, role=clean_role_title)
-        else:
-            architecture = f"Modular service architecture utilizing {combined_stack[0]} and {combined_stack[1]} with automated tests."
-
-        if discipline == "data_analytics":
-            m4 = f"Milestone 4: Build interactive dashboard reporting, document KPI metrics, and run scenario simulations"
-        elif discipline == "frontend_ui":
-            m4 = f"Milestone 4: Test responsive layout breakpoints, verify accessible keyboard navigation, and deploy static assets"
-        elif discipline == "devops_platform":
-            m4 = f"Milestone 4: Deploy multi-container orchestration with {clean_primary}, configure health checks, and verify rollback"
-        elif discipline in ["ai_agents", "ml_engineering"]:
-            m4 = f"Milestone 4: Package model serving endpoint with {clean_primary}, add batch inference, and evaluate accuracy"
-        elif discipline == "tech_leadership_advisory":
-            m4 = f"Milestone 4: Deliver executive architecture decision records (ADRs), risk matrix, and migration roadmap"
-        else:
-            m4 = f"Milestone 4: Configure containerization with Docker, health endpoints (/health/live, /health/ready), and automated CI testing"
-
-        roadmap = [
+        objective = proj.get("executive_summary", f"Production-grade engineering system built for {target_role}.")
+        architecture = proj.get("architecture_summary", f"Modular service architecture utilizing {', '.join(combined_stack[:2])}.")
+        roadmap = proj.get("roadmap", [
             f"Milestone 1: Scaffold {combined_stack[0]} project structure, configuration, and environment setup",
             f"Milestone 2: Implement core processing logic integrating {', '.join(combined_stack[1:3])} with input validation",
-            f"Milestone 3: Develop automated test suites with pytest asserting SLA compliance and error handling",
-            m4
-        ]
+            f"Milestone 3: Develop automated test suites asserting SLA compliance and error handling",
+            f"Milestone 4: Configure containerization with Docker, health endpoints, and automated CI testing"
+        ])
 
         starter_files = _generate_dynamic_starter_code(
             title, combined_stack, roadmap, target_role, objective=objective, architecture=architecture
         )
 
-        # Build clean, human-readable repository slug without hex hashes or triple hyphens
-        raw_slug = f"{clean_primary.lower()}-{arch.get('slug_base', 'portfolio-project')}"
-        slug = re.sub(r'[^a-zA-Z0-9]+', '-', raw_slug).strip('-')[:45]
+        clean_slug_base = re.sub(r'[^a-zA-Z0-9]+', '-', title.lower()).strip('-')[:40]
+        slug = clean_slug_base or "portfolio-project"
 
         is_ds = any(
             k in target_role.lower() or k in title.lower() or any(k in t.lower() for t in combined_stack)
             for k in ["data", "ml", "machine learning", "ai", "pandas", "pytorch", "kaggle", "snowflake", "bigquery"]
         )
+
         manual_commands = [
             f"mkdir {slug} && cd {slug}",
             "git init -b main",
@@ -620,12 +667,27 @@ def synthesize_dynamic_blueprints(
             "slug": slug,
             "title": title,
             "target_role": target_role,
-            "difficulty": arch["difficulty"],
-            "hours": arch["hours"],
-            "target_skills_covered": targeted_gaps,
+            "difficulty": proj.get("difficulty", "Intermediate"),
+            "hours": proj.get("hours", 24),
+            "target_skills_covered": proj.get("skills_addressed", combined_stack[:2]),
+            "skills_addressed": proj.get("skills_addressed", combined_stack[:2]),
             "tech_stack": combined_stack,
-            "architecture_outline": architecture,
+            "non_tech_competencies": proj.get("non_tech_competencies", [
+                "System Design & Tradeoff Analysis",
+                "Unit Testing & Quality Assurance",
+                "Clean Architecture & Documentation"
+            ]),
+            "executive_summary": objective,
             "objective": objective,
+            "architecture_outline": architecture,
+            "architecture": architecture,
+            "key_features": proj.get("key_features", [
+                f"Production {combined_stack[0]} implementation with error handling",
+                "Modular layer separation following clean architecture",
+                "Automated test harness with high code coverage",
+                "Containerization and deployment configuration"
+            ]),
+            "industry_rubric": proj.get("industry_rubric", "Evaluates clean code structure, test coverage, and production reliability."),
             "roadmap": roadmap,
             "starter_files": starter_files,
             "is_kaggle_track": is_ds,

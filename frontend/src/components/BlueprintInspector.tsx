@@ -126,6 +126,36 @@ export function BlueprintInspector({
         </p>
       </div>
 
+      {/* Production-Grade Core Features */}
+      {blueprint.key_features && blueprint.key_features.length > 0 && (
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#1e293b]/40 p-4">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+            Production-grade core features
+          </h4>
+          <ul className="space-y-1.5 text-xs text-slate-700 dark:text-slate-300">
+            {blueprint.key_features.map((feat: string, fidx: number) => (
+              <li key={fidx} className="flex items-start space-x-2">
+                <Check size={13} className="text-emerald-500 shrink-0 mt-0.5" />
+                <span>{feat}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Industry Evaluation Rubric */}
+      {blueprint.industry_rubric && (
+        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-950/20 p-4">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-1.5 flex items-center">
+            <Award size={13} className="mr-1.5" />
+            Industry evaluation rubric
+          </h4>
+          <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+            {blueprint.industry_rubric}
+          </p>
+        </div>
+      )}
+
       {/* Implementation Milestones */}
       <div>
         <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
