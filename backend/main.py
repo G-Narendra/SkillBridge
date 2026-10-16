@@ -135,6 +135,12 @@ async def parse_and_analyze_resume(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="The uploaded PDF file is empty."
             )
+        MAX_PDF_SIZE_BYTES = 15 * 1024 * 1024  # 15 MB
+        if len(content) > MAX_PDF_SIZE_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="Document exceeds maximum allowed size (15 MB)."
+            )
         
         parsed_resume = parse_resume(content)
     except ValueError as e:
@@ -340,7 +346,10 @@ async def download_blueprint_zip(request: DownloadZipRequest):
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
         for file_path, file_content in files.items():
-            normalized_path = f"{clean_slug}/{file_path.lstrip('/')}"
+            safe_path = os.path.normpath(file_path).replace("\\", "/").lstrip("/")
+            if safe_path.startswith("..") or "/../" in safe_path or safe_path.startswith("/"):
+                continue
+            normalized_path = f"{clean_slug}/{safe_path}"
             zip_file.writestr(normalized_path, file_content)
 
     zip_buffer.seek(0)

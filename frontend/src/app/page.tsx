@@ -1034,17 +1034,17 @@ Generated: ${new Date().toISOString()}
                     <AlertCircle size={32} />
                   </div>
                   <h3 className="text-base font-semibold text-rose-700 dark:text-rose-300 mb-1">
-                    {errorMessage.toLowerCase().includes("classified as") || errorMessage.toLowerCase().includes("validation failed")
-                      ? "Document Rejected by JEV Gate"
+                    {errorMessage.toLowerCase().includes("please upload") || errorMessage.toLowerCase().includes("resume") || errorMessage.toLowerCase().includes("document lacks") || errorMessage.toLowerCase().includes("cover letter")
+                      ? "Resume Verification Notice"
                       : "Analysis could not proceed"}
                   </h3>
                   <p className="text-xs text-rose-600 dark:text-rose-400 mb-3 leading-relaxed">
                     {errorMessage}
                   </p>
-                  {(errorMessage.toLowerCase().includes("classified as") || errorMessage.toLowerCase().includes("validation failed")) && (
+                  {(errorMessage.toLowerCase().includes("please upload") || errorMessage.toLowerCase().includes("resume") || errorMessage.toLowerCase().includes("document lacks") || errorMessage.toLowerCase().includes("cover letter")) && (
                     <div className="mb-4 p-3 rounded-xl border border-rose-300/60 dark:border-rose-800 bg-white/70 dark:bg-slate-900/60 text-[11px] text-slate-700 dark:text-slate-300 text-left space-y-1">
-                      <span className="font-semibold text-rose-800 dark:text-rose-300 block">JEV Gate Requirement:</span>
-                      <p>SkillBridge requires an authentic technical resume containing Work Experience, Technical Skills, and Education sections to benchmark candidate competencies.</p>
+                      <span className="font-semibold text-rose-800 dark:text-rose-300 block">Resume Requirements:</span>
+                      <p>SkillBridge requires an authentic technical resume containing Work Experience or Projects, Technical Skills, and Education to benchmark candidate competencies.</p>
                     </div>
                   )}
                   <div className="flex items-center space-x-3">

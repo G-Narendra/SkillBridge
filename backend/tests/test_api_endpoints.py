@@ -6,7 +6,11 @@ from main import app
 
 client = TestClient(app)
 
-SAMPLE_PDF_PATH = r"E:\Moving\Desktop\SkillBridge\CV_Narendra_Gandikota_td_data-analyst.pdf"
+SAMPLE_PDF_PATH = (
+    r"E:\Moving\Desktop\SkillBridge\CV_For_Test.pdf"
+    if os.path.exists(r"E:\Moving\Desktop\SkillBridge\CV_For_Test.pdf")
+    else r"E:\Moving\Desktop\SkillBridge\CV_Narendra_Gandikota_td_data-analyst.pdf"
+)
 
 def test_api_health():
     res = client.get("/api/health")
@@ -102,7 +106,7 @@ def test_api_cache_stats():
     assert "hit_ratio_percentage" in data
 
 def test_api_document_validate():
-    valid_resume = "Alex Rivera\nSoftware Engineer | alex@rivera.dev\nEXPERIENCE:\nFullstack Developer at TechCorp (2021-2025)\nSKILLS: Python, TypeScript, React, Docker\nEDUCATION:\nB.S. in CS (2017-2021)"
+    valid_resume = "Alex Rivera\nalex@rivera.dev | +1-555-0199\nWORK EXPERIENCE:\nFullstack Developer at TechCorp (2021-2025)\n- Built Next.js application.\nTECHNICAL SKILLS: Python, TypeScript, React, Docker\nEDUCATION:\nB.S. in Computer Science (2017-2021)"
     res1 = client.post("/api/document/validate", json={"document_text": valid_resume})
     assert res1.status_code == 200
     assert res1.json()["is_resume"] is True
@@ -112,6 +116,12 @@ def test_api_document_validate():
     assert res2.status_code == 200
     assert res2.json()["is_resume"] is False
     assert "invoice" in res2.json()["rejection_reason"].lower()
+
+    loop_prompt = "# AGENTS.md — Master Agentic Operating System & Autonomous Council Protocol\nSTAGE 1: PRE-BUILD STRATEGY, SPEC & ARCHITECTURE COUNCIL\nSTAGE 4: AUTONOMOUS REFINEMENT & RUNTIME VERIFICATION LOOP\nanti-student code standard: No looks right code without execution.\nYou must not act as an isolated junior developer."
+    res3 = client.post("/api/document/validate", json={"document_text": loop_prompt})
+    assert res3.status_code == 200
+    assert res3.json()["is_resume"] is False
+    assert "prompt" in res3.json()["rejection_reason"].lower() or "directive" in res3.json()["rejection_reason"].lower()
 
 def test_api_blueprints_dynamic():
     payload = {

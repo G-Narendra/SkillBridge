@@ -152,7 +152,7 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
         except Exception as fallback_error:
             raise ValueError(f"Failed to extract text from document: {fallback_error}")
 
-    clean_text = extracted_text.strip()
+    clean_text = extracted_text.strip().replace("\x00", "")[:250000]
     if not clean_text:
         # Final attempt without layout mode
         try:
@@ -161,7 +161,7 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
                 t = page.extract_text()
                 if t:
                     clean_text += t + "\n"
-            clean_text = clean_text.strip()
+            clean_text = clean_text.strip().replace("\x00", "")[:250000]
         except Exception:
             pass
 
@@ -173,6 +173,7 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
 def extract_candidate_links(text: str) -> Dict[str, Any]:
     """
     Parses candidate email, LinkedIn, GitHub, portfolio URLs, name, and phone from resume text.
+    Protects against adversarial header injection, prompt artifacts, and malicious payloads.
     """
     email_match = re.search(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text)
     github_match = re.search(r'(?:https?:\/\/)?(?:www\.)?github\.com\/([a-zA-Z0-9_-]+)', text, re.IGNORECASE)
@@ -206,22 +207,30 @@ def extract_candidate_links(text: str) -> Dict[str, Any]:
     lines = [line.strip() for line in text.split("\n") if line.strip()]
     candidate_name = None
     if lines:
-        for top_line in lines[:3]:
+        for top_line in lines[:5]:
             # Resumes often format: "First Last | email@domain.com | +1-234-567"
             segments = [s.strip() for s in re.split(r'[\s]*[|•\t][\s]*', top_line) if s.strip()]
             first_segment = segments[0] if segments else top_line
-            words = first_segment.split()
-            # Must be 1-4 words, contain no @ or digits, and not be common section headers
-            if 1 <= len(words) <= 4 and not re.search(r'[@\d:]', first_segment):
-                first_lower = first_segment.lower()
+            cleaned = re.sub(r'\s+', ' ', first_segment).strip()
+            words = cleaned.split()
+            # Must be 1-4 words, contain no @, digits, or markdown/code/symbol characters
+            if 1 <= len(words) <= 4 and not re.search(r'[@\d:/\\#*={}\[\]<>]', cleaned):
+                first_lower = cleaned.lower()
                 banned_headers = {
                     "resume", "curriculum", "vitae", "summary", "profile", "contact",
                     "experience", "education", "skills", "projects", "cover", "letter",
-                    "cover letter", "application", "dear"
+                    "cover letter", "application", "dear", "hiring", "manager",
+                    "system", "prompt", "instructions", "stage", "council", "protocol",
+                    "agents", "overview", "syllabus", "course", "assignment", "module",
+                    "lecture", "readme", "architecture", "specification", "guide",
+                    "tutorial", "chapter", "developer mode", "override", "bypass",
+                    "table of contents", "getting started", "introduction", "homework",
+                    "candidate", "profile summary", "work experience", "about me"
                 }
                 if not any(h in first_lower for h in banned_headers):
-                    candidate_name = first_segment
-                    break
+                    if all(w[0].isalpha() for w in words):
+                        candidate_name = cleaned.title() if cleaned.isupper() else cleaned
+                        break
 
     return {
         "name": candidate_name,
