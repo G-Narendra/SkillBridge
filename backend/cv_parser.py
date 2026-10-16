@@ -18,7 +18,8 @@ CANONICAL_TAXONOMY: Dict[str, List[str]] = {
         "React", "Next.js", "Vue", "Angular", "Svelte", "Django", "FastAPI",
         "Flask", "Express", "NestJS", "Spring Boot", "PyTorch", "TensorFlow",
         "Scikit-learn", "Keras", "LangChain", "LlamaIndex", "Hugging Face",
-        "Pandas", "NumPy", "Tailwind CSS", "Redux", "Node.js"
+        "Pandas", "NumPy", "Tailwind CSS", "Redux", "Node.js",
+        "Burp Suite", "Metasploit", "OWASP Top 10", "Scapy", "WAF"
     ],
     "databases": [
         "PostgreSQL", "MySQL", "SQLite", "MongoDB", "Redis", "Cassandra",
@@ -30,11 +31,30 @@ CANONICAL_TAXONOMY: Dict[str, List[str]] = {
         "AWS", "Google Cloud", "Azure", "Linux", "Jenkins", "Ansible", "Helm",
         "Prometheus", "Grafana", "Apache Airflow", "dbt", "Apache Spark",
         "Apache Kafka", "Nginx", "Postman", "Vite", "Webpack", "Tableau", "Power BI",
-        "Excel", "CUDA", "CMake", "OpenCV"
+        "Excel", "CUDA", "CMake", "OpenCV",
+        "Nmap", "Wireshark", "Kali Linux", "Cryptography", "TLS/SSL", "SSH",
+        "Packet Analysis", "VPN", "SQL Injection", "XSS Prevention"
     ]
 }
 
 TAXONOMY_ALIASES: Dict[str, str] = {
+    "burp": "Burp Suite",
+    "burpsuite": "Burp Suite",
+    "owasp": "OWASP Top 10",
+    "metasploit": "Metasploit",
+    "nmap": "Nmap",
+    "wireshark": "Wireshark",
+    "kali": "Kali Linux",
+    "kalilinux": "Kali Linux",
+    "scapy": "Scapy",
+    "crypto": "Cryptography",
+    "cryptography": "Cryptography",
+    "tls": "TLS/SSL",
+    "ssl": "TLS/SSL",
+    "ssh": "SSH",
+    "sqli": "SQL Injection",
+    "xss": "XSS Prevention",
+    "waf": "WAF",
     "py": "Python",
     "python3": "Python",
     "js": "JavaScript",

@@ -53,11 +53,6 @@ export const BenchmarkComparisonBanner: React.FC<BenchmarkComparisonBannerProps>
             <Users size={13} className="mr-1.5 text-slate-400 shrink-0" />
             <span>{comparisonDetail}</span>
           </p>
-          {experienceFocus && (
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 italic">
-              Industry Focus: {experienceFocus}
-            </p>
-          )}
         </div>
 
         <div className="flex items-center gap-3 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-200 dark:border-slate-800">
@@ -82,24 +77,6 @@ export const BenchmarkComparisonBanner: React.FC<BenchmarkComparisonBannerProps>
           </div>
         </div>
       </div>
-
-      {nonTechSkills.length > 0 && (
-        <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mr-1">
-              Industry Non-Technical Competencies:
-            </span>
-            {nonTechSkills.map((nts, idx) => (
-              <span
-                key={idx}
-                className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-md bg-white/70 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 text-slate-700 dark:text-slate-300 font-medium"
-              >
-                {nts}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

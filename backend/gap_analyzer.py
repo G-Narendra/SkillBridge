@@ -95,10 +95,28 @@ ROLE_PROFILES: Dict[str, Dict[str, List[str]]] = {
         "tools": ["Git", "GitHub Actions", "Postman", "Linux"]
     },
     "Security Engineer": {
-        "languages": ["Python", "Bash", "Go", "C++"],
-        "frameworks": ["FastAPI", "Flask"],
-        "databases": ["Elasticsearch", "PostgreSQL"],
-        "tools": ["Linux", "Docker", "Git", "Kubernetes"]
+        "languages": ["Python", "Bash", "Go"],
+        "frameworks": ["Burp Suite", "OWASP Top 10", "TLS/SSL", "WAF"],
+        "databases": ["Elasticsearch", "Redis"],
+        "tools": ["Linux", "Docker", "Git", "Kubernetes", "Wireshark", "Nmap", "Cryptography"]
+    },
+    "Ethical Hacker": {
+        "languages": ["Python", "Bash", "Go", "C"],
+        "frameworks": ["Burp Suite", "Metasploit", "OWASP Top 10", "Scapy", "WAF"],
+        "databases": ["Redis"],
+        "tools": ["Nmap", "Wireshark", "Kali Linux", "Linux", "Docker", "Git", "Cryptography", "TLS/SSL"]
+    },
+    "Penetration Tester": {
+        "languages": ["Python", "Bash", "C"],
+        "frameworks": ["Burp Suite", "Metasploit", "OWASP Top 10", "Scapy"],
+        "databases": ["Redis"],
+        "tools": ["Nmap", "Wireshark", "Kali Linux", "Linux", "Git", "Cryptography"]
+    },
+    "Cybersecurity Analyst": {
+        "languages": ["Python", "Bash", "SQL"],
+        "frameworks": ["OWASP Top 10", "Wireshark", "TLS/SSL"],
+        "databases": ["Elasticsearch"],
+        "tools": ["Nmap", "Wireshark", "Linux", "Git", "Packet Analysis", "VPN"]
     },
     "Systems Engineer": {
         "languages": ["C++", "Rust", "Go", "Bash"],
@@ -568,6 +586,24 @@ def generate_pedagogical_reasoning(skill: str, tier: str, role: str) -> str:
         return "Helps write, test, and organize SQL models to clean up raw data for analytics."
     if "spark" in skill_lower:
         return "Processes massive amounts of data across multiple computers much faster than standard tools."
+    if "burp" in skill_lower:
+        return "Industry standard interception proxy used to audit HTTP traffic, inspect sessions, and discover web vulnerabilities."
+    if "nmap" in skill_lower:
+        return "Essential network reconnaissance scanner used to map active hosts, open ports, and attack surfaces."
+    if "wireshark" in skill_lower or "packet" in skill_lower:
+        return "Definitive packet analysis tool for inspecting raw network protocols and diagnosing suspicious traffic."
+    if "metasploit" in skill_lower:
+        return "Leading penetration testing framework used to verify vulnerabilities with safe exploit modules."
+    if "owasp" in skill_lower:
+        return "The globally recognized benchmark for web application security flaws and defensive countermeasures."
+    if "kali" in skill_lower:
+        return "Pre-configured Linux distribution equipped with standard toolsets for penetration testing and forensics."
+    if "crypto" in skill_lower or "tls" in skill_lower or "ssl" in skill_lower:
+        return "Fundamental protocol guaranteeing data encryption, identity attestation, and secure communication."
+    if "scapy" in skill_lower:
+        return "Powerful packet manipulation tool used to craft custom network probes, scanners, and exploit verification scripts."
+    if "waf" in skill_lower:
+        return "Defensive proxy layer that inspects and filters malicious HTTP payloads before reaching internal services."
     if tier == "languages":
         return f"Core programming language used everyday by {role} teams."
     if tier == "frameworks":
@@ -623,12 +659,27 @@ def analyze_gap(
         if matched_key:
             profile = ROLE_PROFILES[matched_key]
         else:
-            profile = {
-                "languages": ["Python", "SQL", "TypeScript"],
-                "frameworks": ["FastAPI", "React", "Node.js"],
-                "databases": ["PostgreSQL", "Redis"],
-                "tools": ["Docker", "Git", "Linux", "AWS"]
-            }
+            # 1. Check TECH_ROLES_TAXONOMY in role_skills_catalog
+            role_tax = get_role_taxonomy(target_role)
+            if role_tax and "technical_stack" in role_tax:
+                profile = role_tax["technical_stack"]
+            else:
+                # 2. Derive authentic discipline-accurate profile from ARCHETYPE definition
+                arch_def = get_role_archetype_definition(target_role)
+                arch_dims = arch_def.get("dimensions", {})
+                derived_profile: Dict[str, List[str]] = {}
+                for dim_id, dim_cfg in arch_dims.items():
+                    derived_profile[dim_id] = list(dim_cfg.get("default_skills", []))
+                
+                if derived_profile:
+                    profile = derived_profile
+                else:
+                    profile = {
+                        "languages": ["Python", "SQL", "TypeScript"],
+                        "frameworks": ["FastAPI", "React", "Node.js"],
+                        "databases": ["PostgreSQL", "Redis"],
+                        "tools": ["Docker", "Git", "Linux", "AWS"]
+                    }
 
     dynamic_profile, dynamic_weights, archetype_meta = build_dynamic_role_profile(
         target_role,

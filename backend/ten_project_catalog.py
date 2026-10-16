@@ -1698,6 +1698,251 @@ TEN_PROJECT_MATRICES: Dict[str, List[Dict[str, Any]]] = {
             ],
             "industry_rubric": "Evaluates understanding of marketplace fraud vectors, graph data modeling, and balancing fraud catch-rate against false-positive customer friction."
         }
+    ],
+    # -------------------------------------------------------------------------
+    # 8. Cybersecurity, Ethical Hacking & Application Security (10 Projects)
+    # -------------------------------------------------------------------------
+    "security_cyber": [
+        # Beginner 1
+        {
+            "id": "sec-beg-01",
+            "title": "Automated Port Reconnaissance & Banner Grabbing Engine with Scapy",
+            "difficulty": "Beginner",
+            "hours": 16,
+            "primary_skills": ["Python", "Nmap", "Wireshark", "Linux", "Git"],
+            "non_tech_competencies": ["Network Security Fundamentals", "Defensive Reconnaissance", "Documentation"],
+            "executive_summary": "Unsecured or misconfigured exposed ports are the leading attack vector for unauthorized intrusion. This service conducts automated network reconnaissance, grabs service banners, flags insecure open ports, and generates JSON security reports.",
+            "architecture_summary": "Async networking client utilizing Python raw sockets and Scapy packet dissection with structured JSON output and pytest mock socket suite.",
+            "key_features": [
+                "Multi-threaded TCP SYN and connect scan across targeted subnet ranges",
+                "Service banner grabbing identifying outdated software versions and CVE risks",
+                "Formatted JSON security audit report with severity scoring",
+                "Isolated test harness simulating open, closed, and filtered port responses"
+            ],
+            "roadmap": [
+                "Milestone 1: Raw socket connect engine and CIDR subnet parser",
+                "Milestone 2: Banner grabbing module and common service fingerprint database",
+                "Milestone 3: Risk assessment scoring engine and JSON reporting output",
+                "Milestone 4: Automated pytest test suite mocking network socket responses"
+            ],
+            "industry_rubric": "Evaluates understanding of TCP handshakes, socket timeouts, non-destructive scanning ethics, and structured logging."
+        },
+        # Beginner 2
+        {
+            "id": "sec-beg-02",
+            "title": "OWASP Top 10 Web Vulnerability Fuzzer & SQLi/XSS Detection Suite",
+            "difficulty": "Beginner",
+            "hours": 18,
+            "primary_skills": ["Python", "Burp Suite", "OWASP Top 10", "Linux", "pytest"],
+            "non_tech_competencies": ["Web Security Standards", "Vulnerability Reporting", "Ethical Disclosure"],
+            "executive_summary": "Web applications frequently leak data via injection flaws and unfiltered inputs. This testing suite fuzzes HTTP endpoints with safe boundary payloads to detect SQL injection, reflected Cross-Site Scripting (XSS), and path traversal.",
+            "architecture_summary": "Modular security auditing tool utilizing Python HTTP client with payload dictionary generator, response differential analyzer, and test coverage.",
+            "key_features": [
+                "Payload generation engine testing union-based and boolean-blind SQL injection",
+                "Context-aware XSS reflection scanner validating script tag sanitization",
+                "Directory traversal probe verifying path boundary restrictions (../)",
+                "Automated Markdown audit report generation mapping findings to OWASP Top 10 categories"
+            ],
+            "roadmap": [
+                "Milestone 1: HTTP probe request engine and parameter discovery logic",
+                "Milestone 2: Injection payload dictionaries and response anomaly detector",
+                "Milestone 3: False-positive reduction heuristics and severity rating calculator",
+                "Milestone 4: End-to-end test against intentional vulnerable target container"
+            ],
+            "industry_rubric": "Evaluates comprehension of web injection mechanisms, difference between reflected and persistent vulnerabilities, and clear remediation guidance."
+        },
+        # Intermediate 1
+        {
+            "id": "sec-int-01",
+            "title": "Defensive Web Application Firewall (WAF) & Request Sanitization Proxy",
+            "difficulty": "Intermediate",
+            "hours": 24,
+            "primary_skills": ["Python", "FastAPI", "OWASP Top 10", "Docker", "Linux"],
+            "non_tech_competencies": ["Threat Modeling", "Defensive Architecture", "API Security"],
+            "executive_summary": "Legacy web services often cannot be patched immediately when new exploits emerge. This reverse-proxy WAF inspects inbound HTTP requests in real-time, blocks malicious payloads, and rate-limits suspicious clients.",
+            "architecture_summary": "High-performance ASGI middleware proxy utilizing FastAPI and regex pattern matching trees with security event logging and Docker deployment.",
+            "key_features": [
+                "Deep packet inspection of query parameters, headers, cookies, and JSON request bodies",
+                "Configurable rule engine matching regex signatures for SQLi, XSS, and remote code execution",
+                "Sliding-window IP reputation tracker and progressive rate limiting",
+                "Structured security audit logger with RFC-5424 syslog output for SIEM integration"
+            ],
+            "roadmap": [
+                "Milestone 1: ASGI reverse-proxy pipeline with request and response streaming",
+                "Milestone 2: Security inspection ruleset and signature matching engine",
+                "Milestone 3: IP velocity rate limiter and blocklist management layer",
+                "Milestone 4: Comprehensive test suite verifying zero bypass of OWASP test payloads"
+            ],
+            "industry_rubric": "Evaluates defensive programming, balancing low proxy latency against deep inspection, and avoiding denial-of-service in regex matching."
+        },
+        # Intermediate 2
+        {
+            "id": "sec-int-02",
+            "title": "Cryptographic Key Vault & Zero-Knowledge Secret Storage Service",
+            "difficulty": "Intermediate",
+            "hours": 26,
+            "primary_skills": ["Python", "Cryptography", "TLS/SSL", "Linux", "Docker"],
+            "non_tech_competencies": ["Cryptographic Governance", "Key Lifecycle Management", "Compliance"],
+            "executive_summary": "Centralized credential storage requires defense-in-depth where even database compromises cannot expose raw secrets. This service implements envelope encryption with authenticated AES-256-GCM and Argon2id key derivation.",
+            "architecture_summary": "REST microservice with AES-256-GCM envelope encryption, Argon2id master passphrase stretching, automated key rotation, and HMAC integrity checks.",
+            "key_features": [
+                "Authenticated encryption with AES-256-GCM preventing ciphertext tampering",
+                "Argon2id key derivation resisting GPU/ASIC hardware brute-force attacks",
+                "Envelope encryption pattern separating data encryption keys (DEK) from master keys (KEK)",
+                "Cryptographic audit log signed with HMAC-SHA256 preventing log alteration"
+            ],
+            "roadmap": [
+                "Milestone 1: Cryptographic primitive engine (AES-GCM, Argon2id, HMAC)",
+                "Milestone 2: Key hierarchy management and envelope encryption workflows",
+                "Milestone 3: REST API with scoped access tokens and key rotation endpoints",
+                "Milestone 4: Cryptographic validation test suite asserting tamper detection and zero plain-text leaks"
+            ],
+            "industry_rubric": "Evaluates correct implementation of cryptographic primitives, proper IV/nonce handling, and zero memory persistence of plain-text keys."
+        },
+        # Intermediate 3
+        {
+            "id": "sec-int-03",
+            "title": "Credential Stuffing & Auth Brute-Force Detection Engine with Redis",
+            "difficulty": "Intermediate",
+            "hours": 22,
+            "primary_skills": ["Python", "Redis", "Docker", "Linux", "pytest"],
+            "non_tech_competencies": ["Abuse Prevention", "Anomaly Detection", "Observability"],
+            "executive_summary": "Automated credential stuffing attacks use leaked credential dumps to compromise user accounts at high velocity. This engine tracks authentication telemetry across IP, username, and device fingerprints to thwart account takeovers.",
+            "architecture_summary": "Sliding-window analytics service built with Redis sorted sets, computing entropy scores across login attempts to distinguish human users from botnets.",
+            "key_features": [
+                "Sliding-window rate limiter tracking login failures per IP and per target username",
+                "Distributed lock-out mechanism with exponential backoff and captcha challenge flags",
+                "Anomaly scoring based on User-Agent entropy, request frequency, and IP subnet clustering",
+                "Real-time alerting webhook notifying security operations teams of active distributed brute-force campaigns"
+            ],
+            "roadmap": [
+                "Milestone 1: Redis sorted-set sliding window tracking engine",
+                "Milestone 2: Distributed credential stuffing detection heuristics and threshold policies",
+                "Milestone 3: Auth middleware integration and risk score calculator",
+                "Milestone 4: Simulated botnet attack benchmark verifying detection under high load"
+            ],
+            "industry_rubric": "Evaluates understanding of distributed botnet attacks, balancing security barriers with user login friction, and efficient Redis query patterns."
+        },
+        # Intermediate 4
+        {
+            "id": "sec-int-04",
+            "title": "Automated Container Hardening & Static Image Vulnerability Scanner",
+            "difficulty": "Intermediate",
+            "hours": 20,
+            "primary_skills": ["Docker", "Linux", "Bash", "Python", "Git"],
+            "non_tech_competencies": ["DevSecOps CI/CD", "Vulnerability Triage", "Shift-Left Security"],
+            "executive_summary": "Vulnerable base images and misconfigured container manifests expose production clusters to container escapes. This scanner inspects container layers, detects root execution, audit permissions, and blocks vulnerable builds in CI.",
+            "architecture_summary": "Static analysis pipeline parsing Dockerfiles, OCI image manifests, and package lockfiles, outputting SARIF reports for GitHub Actions integration.",
+            "key_features": [
+                "Dockerfile AST parser enforcing non-root user directives and multi-stage builds",
+                "Package version cross-referencing against National Vulnerability Database (NVD) CVE feeds",
+                "Detection of hardcoded secrets, private keys, and environment variables in image layers",
+                "SARIF formatted output for direct integration into CI/CD security quality gates"
+            ],
+            "roadmap": [
+                "Milestone 1: Dockerfile parser and policy compliance validator (CIS Docker Benchmark)",
+                "Milestone 2: OCI image layer unpacker and file permission auditor",
+                "Milestone 3: CVE database matching engine and severity threshold filter",
+                "Milestone 4: GitHub Actions pipeline enforcing build failure on Critical CVEs"
+            ],
+            "industry_rubric": "Evaluates container isolation mechanics, understanding of Linux capabilities/cgroups, and embedding security gates seamlessly into engineering workflows."
+        },
+        # Advanced 1
+        {
+            "id": "sec-adv-01",
+            "title": "Distributed Low-Interaction Honeypot Network & Threat Intelligence Sensor",
+            "difficulty": "Advanced",
+            "hours": 32,
+            "primary_skills": ["Python", "Linux", "Docker", "Packet Analysis", "Wireshark"],
+            "non_tech_competencies": ["Threat Intelligence", "Adversary TTPs", "MITRE ATT&CK Mapping"],
+            "executive_summary": "Active defense requires early reconnaissance intelligence on attacker tactics. This distributed honeypot exposes fake SSH and HTTP services to capture adversary command attempts, exploit payloads, and brute-force dictionaries.",
+            "architecture_summary": "Async event-driven honeypot cluster using Python asyncio, emulating vulnerable service banners, logging session telemetry, and classifying attacks via MITRE ATT&CK.",
+            "key_features": [
+                "Simulated interactive SSH shell capturing attacker commands, wget/curl download attempts, and keystrokes",
+                "HTTP decoy endpoints trapping exploit probes for Log4j, Spring4Shell, and path traversal",
+                "Automated malware payload extraction and SHA-256 fingerprint generation",
+                "Real-time threat feed mapping adversary IP addresses and tactics to MITRE ATT&CK techniques"
+            ],
+            "roadmap": [
+                "Milestone 1: Emulated SSH service listener with fake filesystem navigation",
+                "Milestone 2: HTTP decoy service with fake admin panels and exploit traps",
+                "Milestone 3: Threat intelligence aggregator and IOC (Indicators of Compromise) publisher",
+                "Milestone 4: Attack simulation test validating payload capture and alert dispatch"
+            ],
+            "industry_rubric": "Evaluates defensive deception techniques, sandbox isolation preventing honeypot compromise, and structured cyber threat intelligence (STIX/TAXII)."
+        },
+        # Advanced 2
+        {
+            "id": "sec-adv-02",
+            "title": "Zero-Trust Microservice Mesh Identity & Mutual TLS (mTLS) Attestation Gateway",
+            "difficulty": "Advanced",
+            "hours": 36,
+            "primary_skills": ["Go", "TLS/SSL", "Docker", "Linux", "Cryptography"],
+            "non_tech_competencies": ["Zero-Trust Architecture", "PKI Governance", "Distributed Systems Security"],
+            "executive_summary": "Perimeter network security is obsolete; services must verify identity on every packet. This gateway implements SPIFFE/SPIRE-compatible cryptographic workload identity with automated short-lived X.509 certificate issuance and strict mTLS encryption.",
+            "architecture_summary": "High-throughput Go proxy implementing bidirectional TLS 1.3 handshake verification, cryptographic SAN certificate validation, and least-privilege service-to-service authorization.",
+            "key_features": [
+                "Automated Public Key Infrastructure (PKI) issuing 1-hour ephemeral X.509 workload certificates",
+                "Strict mTLS enforcement with TLS 1.3 cipher suites and client certificate validation",
+                "Cryptographic SPIFFE ID parsing from SAN extensions to enforce service-level authorization matrices",
+                "Zero-downtime certificate rotation and automated CRL/OCSP revocation checks"
+            ],
+            "roadmap": [
+                "Milestone 1: Internal Certificate Authority (CA) and ephemeral cert generation pipeline",
+                "Milestone 2: Go mTLS reverse proxy with custom certificate verification callbacks",
+                "Milestone 3: Service identity authorization matrix enforcing least-privilege communication",
+                "Milestone 4: Stress test demonstrating seamless certificate rotation under active traffic"
+            ],
+            "industry_rubric": "Evaluates deep knowledge of TLS 1.3 handshakes, PKI architecture, non-blocking certificate rotation, and zero-trust security postures."
+        },
+        # Advanced 3
+        {
+            "id": "sec-adv-03",
+            "title": "Binary Exploit Analysis & Memory Protection Bypass Research Sandbox",
+            "difficulty": "Advanced",
+            "hours": 34,
+            "primary_skills": ["C", "Python", "Linux", "Assembly", "Reverse Engineering"],
+            "non_tech_competencies": ["Offensive Security Research", "Root-Cause Analysis", "Responsible Vulnerability Disclosure"],
+            "executive_summary": "Understanding memory corruption vulnerabilities is essential for offensive security research and defensive compiler hardening. This sandbox analyzes compiled ELF binaries, detects buffer overflows and format string flaws, and demonstrates return-oriented programming (ROP) concepts safely.",
+            "architecture_summary": "Isolated Linux sandbox environment utilizing GDB/Python scripts, dissecting stack frames, verifying ASLR/NX/Canary protections, and generating proof-of-concept mitigation patches.",
+            "key_features": [
+                "Automated checksec module evaluating binary compilation flags (ASLR, Stack Canaries, NX/DEP, RELRO)",
+                "Fuzzing harness triggering memory segmentation faults and analyzing core dumps",
+                "Proof-of-concept payload generation demonstrating instruction pointer control in controlled environments",
+                "Defensive remediation patch compiler applying safe C libraries and compiler sanitizers (-fsanitize=address)"
+            ],
+            "roadmap": [
+                "Milestone 1: Binary inspection tool evaluating memory protections and symbol tables",
+                "Milestone 2: Stack frame crash analyzer extracting registers (EIP/RIP) and stack offsets",
+                "Milestone 3: Controlled proof-of-concept payload generator demonstrating memory hijack vectors",
+                "Milestone 4: Automated compiler remediation pipeline compiling memory-safe patched binaries"
+            ],
+            "industry_rubric": "Evaluates low-level understanding of x86/x64 assembly, stack memory layouts, memory mitigations, and transforming exploit findings into defensive compiler hardening."
+        },
+        # Advanced 4
+        {
+            "id": "sec-adv-04",
+            "title": "Enterprise Red Team Command & Control (C2) Detection & Network Threat Hunter",
+            "difficulty": "Advanced",
+            "hours": 36,
+            "primary_skills": ["Python", "Wireshark", "Packet Analysis", "Linux", "Docker"],
+            "non_tech_competencies": ["Threat Hunting", "Network Forensics", "SOC Incident Escalation"],
+            "executive_summary": "Sophisticated adversaries bypass firewalls using encrypted C2 channels, DNS tunneling, and sleep jitter. This network hunting engine analyzes live packet captures, detects beaconing intervals, uncovers DNS exfiltration, and triggers automated incident response.",
+            "architecture_summary": "High-speed packet capture and stream processing pipeline analyzing pcap streams with statistical frequency analysis (FFT) to detect periodic beaconing.",
+            "key_features": [
+                "Fast Fourier Transform (FFT) analysis on network flow timing detecting beaconing jitter within encrypted sessions",
+                "DNS tunneling detector measuring base64 subdomain entropy and TXT record volume anomalies",
+                "JA3 and JA3S TLS fingerprint extraction matching suspicious SSL client hello signatures",
+                "Incident triage dashboard with automated PCAP snippet export for digital forensic investigation"
+            ],
+            "roadmap": [
+                "Milestone 1: Pcap stream ingestion engine and protocol dissection layer",
+                "Milestone 2: Statistical timing analyzer identifying periodic C2 beaconing rhythms",
+                "Milestone 3: DNS entropy scanner detecting data exfiltration over UDP 53",
+                "Milestone 4: End-to-end evaluation with recorded Cobalt Strike and Empire C2 traffic samples"
+            ],
+            "industry_rubric": "Evaluates network protocol depth, cryptographic fingerprinting (JA3), statistical anomaly detection, and actionable incident escalation."
+        }
     ]
 }
 

@@ -512,24 +512,44 @@ export default function Home() {
       setAnalysis(response.data);
       setStatus("success");
     } catch (err: any) {
-      // Automatic dual-route retry: If primary failed or timed out, attempt the alternate path
-      try {
-        const alternateBase = apiBaseUrl.startsWith("http")
-          ? "/api/backend"
-          : OFFICIAL_BACKEND_URL;
-        const retryRes = await axios.post(`${alternateBase}/api/resume/parse`, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data"
-          },
-          timeout: 60000
-        });
-        setAnalysis(retryRes.data);
-        setStatus("success");
-        return;
-      } catch {
-        // Fall through to error
+      // If client validation error (422, 400), the uploaded document is invalid or not a resume - do not retry alternate
+      const httpStatus = err.response?.status;
+      if (httpStatus !== 400 && httpStatus !== 422) {
+        try {
+          const alternateBase = apiBaseUrl.startsWith("http")
+            ? "/api/backend"
+            : OFFICIAL_BACKEND_URL;
+          const retryRes = await axios.post(`${alternateBase}/api/resume/parse`, formData, {
+            headers: {
+              "Content-Type": "multipart/form-data"
+            },
+            timeout: 60000
+          });
+          setAnalysis(retryRes.data);
+          setStatus("success");
+          return;
+        } catch {
+          // Fall through to error
+        }
       }
-      const detail = err.response?.data?.detail || err.message || "Unable to reach the backend parsing service.";
+
+      let detail = "";
+      if (err.response?.data?.detail) {
+        if (typeof err.response.data.detail === "string") {
+          detail = err.response.data.detail;
+        } else if (Array.isArray(err.response.data.detail)) {
+          detail = err.response.data.detail.map((d: any) => d.msg || JSON.stringify(d)).join(", ");
+        } else {
+          detail = JSON.stringify(err.response.data.detail);
+        }
+      } else if (err.response?.data?.message) {
+        detail = err.response.data.message;
+      } else if (httpStatus === 422 || err.message?.includes("422")) {
+        detail = "The uploaded document could not be verified as a valid technical resume. Please upload your personal CV or resume containing your work experience or projects, technical skills, and education.";
+      } else {
+        detail = err.message || "Unable to reach the backend parsing service.";
+      }
+
       setErrorMessage(detail);
       setStatus("error");
     }
@@ -1034,22 +1054,31 @@ Generated: ${new Date().toISOString()}
                     <AlertCircle size={32} />
                   </div>
                   <h3 className="text-base font-semibold text-rose-700 dark:text-rose-300 mb-1">
-                    {errorMessage.toLowerCase().includes("please upload") || errorMessage.toLowerCase().includes("resume") || errorMessage.toLowerCase().includes("document lacks") || errorMessage.toLowerCase().includes("cover letter")
+                    {errorMessage.toLowerCase().includes("please upload") ||
+                    errorMessage.toLowerCase().includes("resume") ||
+                    errorMessage.toLowerCase().includes("document lacks") ||
+                    errorMessage.toLowerCase().includes("cover letter") ||
+                    errorMessage.toLowerCase().includes("422") ||
+                    errorMessage.toLowerCase().includes("verification") ||
+                    errorMessage.toLowerCase().includes("could not be verified")
                       ? "Resume Verification Notice"
-                      : "Analysis could not proceed"}
+                      : "Analysis Notice"}
                   </h3>
                   <p className="text-xs text-rose-600 dark:text-rose-400 mb-3 leading-relaxed">
-                    {errorMessage}
+                    {errorMessage.includes("status code 422") || errorMessage.includes("422")
+                      ? "The uploaded document could not be verified as a technical resume. Please upload your personal CV or resume containing your work experience or projects, technical skills, and education."
+                      : errorMessage}
                   </p>
-                  {(errorMessage.toLowerCase().includes("please upload") || errorMessage.toLowerCase().includes("resume") || errorMessage.toLowerCase().includes("document lacks") || errorMessage.toLowerCase().includes("cover letter")) && (
-                    <div className="mb-4 p-3 rounded-xl border border-rose-300/60 dark:border-rose-800 bg-white/70 dark:bg-slate-900/60 text-[11px] text-slate-700 dark:text-slate-300 text-left space-y-1">
-                      <span className="font-semibold text-rose-800 dark:text-rose-300 block">Resume Requirements:</span>
-                      <p>SkillBridge requires an authentic technical resume containing Work Experience or Projects, Technical Skills, and Education to benchmark candidate competencies.</p>
-                    </div>
-                  )}
+                  <div className="mb-4 p-3 rounded-xl border border-rose-300/60 dark:border-rose-800 bg-white/70 dark:bg-slate-900/60 text-[11px] text-slate-700 dark:text-slate-300 text-left space-y-1">
+                    <span className="font-semibold text-rose-800 dark:text-rose-300 block">Resume Requirements:</span>
+                    <p>SkillBridge requires an authentic technical resume containing Work Experience or Projects, Technical Skills, and Education to benchmark candidate competencies.</p>
+                  </div>
                   <div className="flex items-center space-x-3">
-                    <Button variant="secondary" size="sm" onClick={() => executeAnalysis()}>
-                      Retry analysis
+                    <Button variant="secondary" size="sm" onClick={() => {
+                      setStatus("idle");
+                      setFile(null);
+                    }}>
+                      Upload valid resume
                     </Button>
                   </div>
                 </CardContent>

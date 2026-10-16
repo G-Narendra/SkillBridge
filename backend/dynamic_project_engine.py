@@ -449,7 +449,56 @@ def get_discipline_project_tracks(
             }
         ]
 
-    # 6. Default / Backend Systems & Software Engineering
+    # 6. Cybersecurity, Ethical Hacking & Application Security
+    if discipline == "security_cyber":
+        return [
+            {
+                "track": "Offensive Security & Network Reconnaissance",
+                "lead_skills": [s for s in missing_skills if s in ["Nmap", "Wireshark", "Burp Suite", "Scapy", "Python"]] or ["Nmap", "Python"],
+                "complement_skills": ["Linux", "Git"],
+                "difficulty": "Beginner" if is_freshman else "Intermediate",
+                "hours": 16 if is_freshman else 22,
+                "theme_template": "Automated Port Reconnaissance & Network Threat Sensor with {primary}",
+                "objective_template": "Conduct automated network reconnaissance, capture service banners, and detect open vulnerabilities using {primary}.",
+                "architecture_template": "Asynchronous network client utilizing {primary} and raw sockets with structured JSON reporting.",
+                "slug_base": "reconnaissance-threat-sensor"
+            },
+            {
+                "track": "Web Application Vulnerability & Fuzzing",
+                "lead_skills": [s for s in missing_skills if s in ["Burp Suite", "OWASP Top 10", "Metasploit", "WAF"]] or ["OWASP Top 10", "Burp Suite"],
+                "complement_skills": ["Python", "Linux"],
+                "difficulty": "Intermediate",
+                "hours": 24,
+                "theme_template": "OWASP Top 10 Web Vulnerability Fuzzer & Penetration Testing Suite",
+                "objective_template": "Implement a modular automated security testing harness targeting SQL injection, XSS, and broken access control with {primary}.",
+                "architecture_template": "Defensive security scanning framework utilizing {primary} with fuzzing payload generators and differential response analysis.",
+                "slug_base": "vulnerability-fuzzer-suite"
+            },
+            {
+                "track": "Protocols, Cryptography & Defensive Hardening",
+                "lead_skills": [s for s in missing_skills if s in ["TLS/SSL", "Cryptography", "SSH", "Docker"]] or ["Cryptography", "TLS/SSL"],
+                "complement_skills": ["Linux", "Docker"],
+                "difficulty": "Intermediate",
+                "hours": 28,
+                "theme_template": "Cryptographic Key Vault & Zero-Trust Access Gateway with {primary}",
+                "objective_template": "Build a secure secret storage service with envelope encryption, cryptographic attestation, and mTLS verification.",
+                "architecture_template": "Zero-trust service architecture using {primary} with authenticated AES-GCM encryption and audit logging.",
+                "slug_base": "crypto-vault-zero-trust"
+            },
+            {
+                "track": "Red Team Operations & Honeypot Sensor Network",
+                "lead_skills": missing_skills[:2] or ["Kali Linux", "Python"],
+                "complement_skills": ["Docker", "Linux", "Git"],
+                "difficulty": "Advanced",
+                "hours": 36,
+                "theme_template": "Distributed Honeypot Threat Intelligence Sensor & Exploit Sandbox",
+                "objective_template": "Architect a multi-node distributed honeypot capturing adversary payloads, brute-force telemetry, and C2 traffic.",
+                "architecture_template": "Containerized deception architecture with low-interaction honeypots, behavioral log aggregation, and automated alert scoring.",
+                "slug_base": "honeypot-threat-sensor"
+            }
+        ]
+
+    # 7. Default / Backend Systems & Software Engineering
     first_track = {
         "track": "Foundational Architecture & Automated Test Suite",
         "lead_skills": matched_skills[:1] or langs[:1] or ["Python"],

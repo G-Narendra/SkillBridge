@@ -237,33 +237,33 @@ ARCHETYPE_REGISTRY: Dict[str, Dict[str, Any]] = {
     },
     "security_cyber": {
         "id": "security_cyber",
-        "name": "Cybersecurity & Application Security",
-        "rationale": "Evaluates penetration testing tools, cryptographic protocols, OS hardening, and compliance automation. Web visual design systems and relational database tuning are omitted.",
-        "omitted_metrics": ["Web Frontend Visual Design", "Relational Database Performance Tuning"],
+        "name": "Cybersecurity, Ethical Hacking & Application Security",
+        "rationale": "Evaluates penetration testing tools, cryptographic protocols, OS hardening, vulnerability assessment, and security automation. Web visual design systems, CSS/Tailwind, and general business analytics are omitted.",
+        "omitted_metrics": ["Web Frontend Visual Design & CSS", "General Business Analytics", "Relational Database Performance Tuning"],
         "dimensions": {
             "security_tooling": {
-                "label": "Security Auditing & Pen-testing",
+                "label": "Security Auditing & Pen-Testing",
                 "weight": 0.35,
                 "icon": "shield",
-                "default_skills": ["Linux", "Docker", "Git"]
+                "default_skills": ["Burp Suite", "Nmap", "Wireshark", "Metasploit", "OWASP Top 10", "Linux"]
             },
             "protocols_identity": {
-                "label": "Protocols, Cryptography & Identity",
+                "label": "Protocols, Cryptography & Network Security",
                 "weight": 0.30,
                 "icon": "key",
-                "default_skills": ["PostgreSQL", "Elasticsearch"]
+                "default_skills": ["TLS/SSL", "Cryptography", "SSH", "Packet Analysis", "VPN"]
             },
             "defensive_hardening": {
                 "label": "OS Hardening, WAF & Container Security",
                 "weight": 0.20,
                 "icon": "server",
-                "default_skills": ["Kubernetes", "Linux"]
+                "default_skills": ["Linux", "Docker", "WAF", "SQL Injection", "XSS Prevention"]
             },
             "security_automation": {
-                "label": "Security Scripting & Automation",
+                "label": "Security Scripting & Exploit Analysis",
                 "weight": 0.15,
                 "icon": "terminal",
-                "default_skills": ["Python", "Bash", "Go", "C++"]
+                "default_skills": ["Python", "Bash", "Go", "C", "Git"]
             }
         }
     },
@@ -510,7 +510,12 @@ def classify_role_archetype(role_name: str) -> str:
         return "mobile_dev"
 
     # 8. Security & Cyber
-    if any(k in r for k in ["security", "cyber", "penetration", "soc", "infosec", "appsec"]):
+    if any(k in r for k in [
+        "security", "cyber", "penetration", "soc", "infosec", "appsec",
+        "hacker", "hacking", "ethical hacker", "pentest", "red team", "blue team",
+        "exploit", "vulnerability", "threat", "forensics", "malware", "incident responder",
+        "secops", "devsecops"
+    ]):
         return "security_cyber"
 
     # 9. Blockchain & Web3

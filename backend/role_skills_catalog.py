@@ -290,6 +290,28 @@ TECH_ROLES_TAXONOMY: Dict[str, Dict[str, Any]] = {
             "senior": {"target_score": 85, "focus": "Zero-Trust enterprise architecture, automated red-teaming harnesses, SOC2 compliance governance"}
         }
     },
+    "Ethical Hacker": {
+        "discipline": "security_cyber",
+        "archetype": "security_cyber",
+        "description": "Performs offensive penetration testing, red teaming, exploit analysis, vulnerability assessments, and security hardening to discover and eliminate system weaknesses.",
+        "technical_stack": {
+            "languages": ["Python", "Bash", "Go", "C"],
+            "frameworks": ["Burp Suite", "Metasploit", "OWASP Top 10", "Scapy"],
+            "databases": ["Redis"],
+            "tools": ["Nmap", "Wireshark", "Linux", "Docker", "Git", "Kali Linux"]
+        },
+        "non_technical_competencies": [
+            "Offensive Security Mindset & Kill-Chain Analysis",
+            "Responsible Disclosure & Proof-of-Concept Reporting",
+            "Technical Due Diligence & Threat Modeling",
+            "Root Cause Remediation & Security Advisory"
+        ],
+        "experience_benchmarks": {
+            "fresher": {"target_score": 70, "focus": "Network port reconnaissance, OWASP Top 10 web vulnerabilities, SQLi/XSS fuzzing, traffic inspection"},
+            "mid_level": {"target_score": 80, "focus": "Automated penetration testing scripts, custom exploit development, lateral movement auditing, WAF evasion"},
+            "senior": {"target_score": 85, "focus": "Zero-day vulnerability discovery, advanced red-team C2 orchestration, kernel privilege escalation, enterprise threat emulation"}
+        }
+    },
     "Cloud Architect": {
         "discipline": "devops_platform",
         "archetype": "devops_platform",
