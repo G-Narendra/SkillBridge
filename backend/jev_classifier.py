@@ -65,6 +65,28 @@ NEGATIVE_DOCUMENT_TAXONOMY = {
         "label": "legal contract or non-disclosure agreement",
         "guidance": "Uploaded document appears to be a legal agreement or contract. Please upload your curriculum vitae or resume."
     },
+    "cover_letter": {
+        "keywords": [
+            r'\bcover\s+letter\b', r'\bdear\s+(?:hiring\s+manager|recruiter|team|sir|madam|mr\.|ms\.|mrs\.|dr\.)\b',
+            r'\bi\s+am\s+writing\s+to\s+(?:apply|express\s+my\s+interest|submit\s+my\s+application)\b',
+            r'\bplease\s+(?:find|accept)\s+(?:attached|enclosed)\s+(?:my\s+)?(?:resume|cv|application)\b',
+            r'\bthank\s+you\s+for\s+your\s+time\s+and\s+consideration\b', r'\bsincerely\b',
+            r'\byours\s+(?:sincerely|faithfully|truly)\b', r'\blook\s+forward\s+to\s+(?:hearing\s+from\s+you|the\s+opportunity)\b',
+            r'\bexcited\s+to\s+apply\s+for\b', r'\bapplication\s+for\s+the\s+position\b'
+        ],
+        "label": "cover letter",
+        "guidance": "The uploaded file appears to be a cover letter. Please upload your CV or resume containing your work experience and technical skills to proceed."
+    },
+    "job_description": {
+        "keywords": [
+            r'\bjob\s+description\b', r'\brole\s+overview\b', r'\bwhat\s+you(?:\'ll|\s+will)\s+do\b',
+            r'\bwhat\s+we(?:\'re|\s+are)\s+looking\s+for\b', r'\bresponsibilities\s+(?:and|&)\s+requirements\b',
+            r'\bkey\s+responsibilities\b', r'\babout\s+the\s+(?:company|role|team)\b',
+            r'\bequal\s+opportunity\s+employer\b', r'\bcompensation\s+(?:and|&)\s+benefits\b'
+        ],
+        "label": "job description",
+        "guidance": "The uploaded file appears to be a job description. Please upload your personal resume or CV to benchmark your skills."
+    },
     "source_code": {
         "keywords": [
             r'#include\s+<', r'public\s+static\s+void\s+main', r'def\s+[a-zA-Z_]\w*\s*\(',
@@ -139,9 +161,42 @@ def classify_document(text: str) -> JEVValidationResult:
     if not has_skills:
         missing_critical.append("technical skills")
 
-    # Strong negative override (e.g. >= 2 invoice/legal keywords or >= 3 academic keywords)
-    threshold = 2 if dominant_neg_type in ["invoice", "legal_contract", "source_code"] else 3
-    if max_neg_matches >= threshold and positive_signals <= 3:
+    # Explicit Cover Letter check (unambiguous rejection without robotic jargon)
+    has_cover_letter_markers = (
+        bool(re.search(r'\bcover\s+letter\b', text_lower)) or
+        bool(re.search(r'\bdear\s+(?:hiring|recruiter|team|sir|madam|mr\.|ms\.|mrs\.|dr\.)', text_lower)) or
+        bool(re.search(r'\bi\s+am\s+writing\s+to\s+(?:apply|express\s+my\s+interest|submit)', text_lower))
+    )
+    if (dominant_neg_type == "cover_letter" and max_neg_matches >= 2) or has_cover_letter_markers:
+        return JEVValidationResult(
+            is_resume=False,
+            confidence_score=0.10,
+            document_type="cover_letter",
+            detected_sections=detected_sections,
+            missing_critical_sections=missing_critical,
+            rejection_reason="The uploaded file is a cover letter.",
+            actionable_guidance="Please upload your CV or resume instead to benchmark your skills.",
+            positive_signals_count=positive_signals,
+            negative_signals_count=max(max_neg_matches, 2)
+        )
+
+    # Explicit Job Description check
+    if dominant_neg_type == "job_description" and max_neg_matches >= 2:
+        return JEVValidationResult(
+            is_resume=False,
+            confidence_score=0.10,
+            document_type="job_description",
+            detected_sections=detected_sections,
+            missing_critical_sections=missing_critical,
+            rejection_reason="The uploaded file is a job description.",
+            actionable_guidance="Please upload your personal CV or resume instead of a job posting.",
+            positive_signals_count=positive_signals,
+            negative_signals_count=max_neg_matches
+        )
+
+    # Strong negative override (e.g. >= 2 invoice/legal/code keywords or >= 3 academic keywords)
+    threshold = 2 if dominant_neg_type in ["invoice", "legal_contract", "source_code", "cover_letter", "job_description"] else 3
+    if max_neg_matches >= threshold:
         config = NEGATIVE_DOCUMENT_TAXONOMY[dominant_neg_type]
         confidence = min(0.85 + (max_neg_matches * 0.03), 0.99)
         return JEVValidationResult(
@@ -150,7 +205,7 @@ def classify_document(text: str) -> JEVValidationResult:
             document_type=dominant_neg_type,
             detected_sections=detected_sections,
             missing_critical_sections=missing_critical,
-            rejection_reason=f"Document classified as a {config['label']} (detected {max_neg_matches} characteristic patterns).",
+            rejection_reason=f"The uploaded file is a {config['label']}.",
             actionable_guidance=config["guidance"],
             positive_signals_count=positive_signals,
             negative_signals_count=max_neg_matches

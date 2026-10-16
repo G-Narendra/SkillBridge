@@ -214,7 +214,11 @@ def extract_candidate_links(text: str) -> Dict[str, Any]:
             # Must be 1-4 words, contain no @ or digits, and not be common section headers
             if 1 <= len(words) <= 4 and not re.search(r'[@\d:]', first_segment):
                 first_lower = first_segment.lower()
-                banned_headers = {"resume", "curriculum", "vitae", "summary", "profile", "contact", "experience", "education", "skills", "projects"}
+                banned_headers = {
+                    "resume", "curriculum", "vitae", "summary", "profile", "contact",
+                    "experience", "education", "skills", "projects", "cover", "letter",
+                    "cover letter", "application", "dear"
+                }
                 if not any(h in first_lower for h in banned_headers):
                     candidate_name = first_segment
                     break
@@ -514,9 +518,8 @@ def parse_resume(file_bytes: bytes) -> Dict[str, Any]:
     raw_text = extract_text_from_pdf(file_bytes)
     jev_validation = classify_document(raw_text)
     if not jev_validation.is_resume:
-        raise ValueError(
-            f"Document validation failed: {jev_validation.rejection_reason} {jev_validation.actionable_guidance}"
-        )
+        err_msg = f"{jev_validation.rejection_reason} {jev_validation.actionable_guidance}".strip()
+        raise ValueError(err_msg)
 
     contacts = extract_candidate_links(raw_text)
     anonymized_result = anonymize_resume_pii(raw_text, contacts)

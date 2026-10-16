@@ -28,6 +28,12 @@ load_dotenv()
 logger = logging.getLogger("skillbridge.analyzer")
 
 ROLE_PROFILES: Dict[str, Dict[str, List[str]]] = {
+    "Marketplace Engineer": {
+        "languages": ["Python", "Go", "SQL"],
+        "frameworks": ["FastAPI", "Pandas"],
+        "databases": ["Redis", "PostgreSQL"],
+        "tools": ["Docker", "Apache Kafka", "Git", "pytest"]
+    },
     "Data Analyst": {
         "languages": ["Python", "SQL", "R"],
         "frameworks": ["Pandas", "NumPy", "Scikit-learn"],

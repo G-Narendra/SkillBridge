@@ -142,6 +142,39 @@ def test_jev_classifier_filtering():
     assert res2.is_resume is False
     assert "invoice" in res2.rejection_reason.lower()
 
+    # 3. Cover letter (must be rejected cleanly)
+    cover_letter = """
+    Cover Letter
+    Dear Hiring Manager,
+    I am writing to express my strong interest in the Junior Analyst position.
+    In my previous projects, I used Python and SQL to analyze datasets.
+    I look forward to hearing from you.
+    Sincerely,
+    Narendra Gandikota
+    narendragandikota2540@gmail.com
+    """
+    res3 = classify_document(cover_letter)
+    assert res3.is_resume is False
+    assert res3.document_type == "cover_letter"
+    assert "cover letter" in res3.rejection_reason.lower()
+
+
+def test_marketplace_engineer_archetype_and_projects():
+    result = analyze_gap(["Python", "SQL"], "Marketplace Engineer", experience_years=2)
+    arch = result["archetype_metadata"]
+    assert arch["id"] == "marketplace_systems"
+    assert "Marketplace Systems" in arch["name"]
+    # Check that client UI is omitted
+    assert any("UI" in om or "CSS" in om for om in arch["omitted_metrics"])
+    # Check dimensions
+    dim_ids = [d["id"] for d in result["dimensions"]]
+    assert "matching_dispatch" in dim_ids
+    assert "dynamic_pricing_auctions" in dim_ids
+    # Check projects are authentic marketplace projects
+    projects = result["projects"]
+    assert len(projects) >= 3
+    assert any("Surge Pricing" in p["title"] or "Escrow" in p["title"] or "Dispatch" in p["title"] for p in projects)
+
 
 def test_fresher_experience_calibrated_benchmark():
     # Fresher candidate with only basic skills: Python, React, Git (0 years experience)

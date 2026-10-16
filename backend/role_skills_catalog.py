@@ -48,6 +48,28 @@ NON_TECH_COMPETENCY_DEFINITIONS = {
 
 # Curated IT & Technical Role Registry with Tech & Non-Tech Stacks
 TECH_ROLES_TAXONOMY: Dict[str, Dict[str, Any]] = {
+    "Marketplace Engineer": {
+        "discipline": "marketplace_systems",
+        "archetype": "marketplace_systems",
+        "description": "Designs and implements two-sided supply/demand matching engines, dynamic surge pricing models, multi-party escrow ledgers, and marketplace fraud defenses.",
+        "technical_stack": {
+            "languages": ["Python", "Go", "SQL"],
+            "frameworks": ["FastAPI", "Pandas"],
+            "databases": ["Redis", "PostgreSQL"],
+            "tools": ["Docker", "Apache Kafka", "Git", "pytest"]
+        },
+        "non_technical_competencies": [
+            "Two-Sided Marketplace Liquidity & Cold-Start Strategy",
+            "Geospatial Indexing & Bipartite Matching Tradeoffs",
+            "Multi-Party Financial Escrow & Double-Entry Accounting",
+            "Trust, Reputation & Anti-Disintermediation Fraud Prevention"
+        ],
+        "experience_benchmarks": {
+            "fresher": {"target_score": 70, "focus": "Bipartite matching syntax, Redis geospatial queries, basic CRUD APIs, SQL models"},
+            "mid_level": {"target_score": 80, "focus": "Dynamic surge pricing, double-entry ledger transactions, Stripe Connect webhooks, Kafka streaming"},
+            "senior": {"target_score": 85, "focus": "Uber/DoorDash scale H3 dispatching, market-clearing auction equilibrium, distributed fault tolerance"}
+        }
+    },
     "Backend Engineer": {
         "discipline": "backend_systems",
         "archetype": "backend_systems",

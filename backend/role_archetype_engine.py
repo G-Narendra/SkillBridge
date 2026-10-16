@@ -395,6 +395,38 @@ ARCHETYPE_REGISTRY: Dict[str, Dict[str, Any]] = {
             }
         }
     },
+    "marketplace_systems": {
+        "id": "marketplace_systems",
+        "name": "Marketplace Systems & Algorithmic Engineering",
+        "rationale": "Evaluates two-sided supply/demand matching algorithms, dynamic surge pricing models, multi-party payment ledgers, and marketplace fraud prevention. Client UI styling and mobile SDKs are omitted.",
+        "omitted_metrics": ["Client UI Styling & CSS", "Mobile Application SDKs", "Static CMS"],
+        "dimensions": {
+            "matching_dispatch": {
+                "label": "Matching, Dispatch & Geospatial Engines",
+                "weight": 0.30,
+                "icon": "activity",
+                "default_skills": ["Python", "Go", "Redis", "PostgreSQL", "SQL"]
+            },
+            "dynamic_pricing_auctions": {
+                "label": "Dynamic Pricing, Auctions & Elasticity",
+                "weight": 0.25,
+                "icon": "trending_up",
+                "default_skills": ["Python", "FastAPI", "Redis", "SQL", "Pandas"]
+            },
+            "escrow_ledgers_payments": {
+                "label": "Multi-Party Escrow, Ledgers & Payouts",
+                "weight": 0.25,
+                "icon": "database",
+                "default_skills": ["PostgreSQL", "FastAPI", "Redis", "Docker"]
+            },
+            "trust_reputation_fraud": {
+                "label": "Trust, Reputation & Fraud Prevention",
+                "weight": 0.20,
+                "icon": "shield",
+                "default_skills": ["Python", "Docker", "Apache Kafka", "Git", "pytest"]
+            }
+        }
+    },
     "fullstack_general": {
         "id": "fullstack_general",
         "name": "Software Engineering",
@@ -436,7 +468,11 @@ def classify_role_archetype(role_name: str) -> str:
     """
     r = role_name.lower().strip()
 
-    # 0. Technology Leadership, Architecture Strategy & Advisory
+    # 0. Marketplace, Matching & Platform Economics
+    if any(k in r for k in ["marketplace", "matching algorithm", "dispatch", "dynamic pricing", "ledger engineer", "two-sided"]):
+        return "marketplace_systems"
+
+    # 0.1 Technology Leadership, Architecture Strategy & Advisory
     if any(k in r for k in [
         "cto", "vp engineering", "vp of engineering", "head of engineering", "director of engineering",
         "technical lead", "tech lead", "software architect", "enterprise architect", "solutions architect",

@@ -1452,6 +1452,252 @@ TEN_PROJECT_MATRICES: Dict[str, List[Dict[str, Any]]] = {
             ],
             "industry_rubric": "Evaluates executive rigor, detection of non-obvious technical liabilities, objective valuation adjustments, and clear presentation to non-technical investors."
         }
+    ],
+
+    # -------------------------------------------------------------------------
+    # 7. Marketplace Systems & Algorithmic Engineering (10 Projects)
+    # -------------------------------------------------------------------------
+    "marketplace_systems": [
+        # Beginner 1
+        {
+            "id": "mp-beg-01",
+            "title": "Two-Sided Service Marketplace Matching API with Redis Geospatial Indexing",
+            "difficulty": "Beginner",
+            "hours": 18,
+            "primary_skills": ["Python", "FastAPI", "Redis", "PostgreSQL", "pytest"],
+            "non_tech_competencies": ["Geospatial Indexing", "Supply-Demand Matching", "API Design"],
+            "executive_summary": "On-demand local service marketplaces (like TaskRabbit or Thumbtack) require radius-based provider search and deterministic order assignment. This service indexes provider locations in Redis and matches service requests to the nearest qualified provider.",
+            "architecture_summary": "FastAPI REST API with Redis GEOADD and GEOSEARCH geospatial indexing, PostgreSQL request records, and automated pytest fixtures.",
+            "key_features": [
+                "Radius-bounded geospatial query filtering nearby verified providers within N kilometers",
+                "Deterministic assignment logic matching customer requests to highest-rated nearby providers",
+                "Reservation state machine (REQUESTED -> MATCHED -> FULFILLED) with automatic timeout expiry",
+                "Atomic Redis transactions preventing race conditions when two customers request the same provider"
+            ],
+            "roadmap": [
+                "Milestone 1: Geospatial location schema & Redis GEO indexing setup",
+                "Milestone 2: Service request submission and nearest-neighbor radius search",
+                "Milestone 3: Atomic locking & reservation state machine transitions",
+                "Milestone 4: Automated load tests asserting sub-15ms match latency under concurrent bookings"
+            ],
+            "industry_rubric": "Evaluates understanding of spatial queries, race conditions when two customers book the same provider simultaneously, and clean API design."
+        },
+        # Beginner 2
+        {
+            "id": "mp-beg-02",
+            "title": "Marketplace Bayesian Rating & Review Normalization Service",
+            "difficulty": "Beginner",
+            "hours": 16,
+            "primary_skills": ["Python", "SQL", "PostgreSQL", "FastAPI", "pytest"],
+            "non_tech_competencies": ["Trust & Reputation Systems", "Statistical Normalization", "Cold-Start Economics"],
+            "executive_summary": "A 5.0-star rating from 1 review should not outrank a 4.9-star rating from 2,000 reviews. This service implements Wilson score interval and empirical Bayes estimation to rank marketplace sellers fairly.",
+            "architecture_summary": "Statistical ranking microservice computing Bayesian mean scores and Wilson score lower bounds on PostgreSQL review tables.",
+            "key_features": [
+                "Empirical Bayes prior calculation damping low-sample variance for new sellers",
+                "Wilson score confidence intervals for thumbs up/down feedback",
+                "Anti-shilling review velocity rate limiters preventing spam review bursts",
+                "Deterministic sorting query optimization using functional indexes"
+            ],
+            "roadmap": [
+                "Milestone 1: Relational review schema & mock distribution generator",
+                "Milestone 2: Mathematical formula implementation for Bayesian mean & Wilson score",
+                "Milestone 3: Fast ranking API endpoint with cached scores",
+                "Milestone 4: Statistical validation tests asserting cold-start seller fairness"
+            ],
+            "industry_rubric": "Evaluates statistical rigor, avoidance of naive arithmetic averages, and efficient database query indexing."
+        },
+        # Intermediate 1
+        {
+            "id": "mp-int-01",
+            "title": "Real-Time Supply-Demand Surge Pricing & Elasticity Engine",
+            "difficulty": "Intermediate",
+            "hours": 28,
+            "primary_skills": ["Python", "FastAPI", "Redis", "Pandas", "Docker"],
+            "non_tech_competencies": ["Dynamic Pricing & Economics", "Elasticity Modeling", "Market Equilibrium"],
+            "executive_summary": "When localized ride or delivery demand exceeds active driver supply, market failure occurs. This engine calculates real-time price multipliers using demand-supply elasticity curves to balance liquidity.",
+            "architecture_summary": "Real-time pricing engine polling supply/demand counts from Redis sliding windows and recalculating surge multipliers per geographic zone.",
+            "key_features": [
+                "Dynamic multiplier calculation (1.0x to 3.5x) based on supply-to-demand ratio",
+                "Price elasticity demand curve simulation damping demand spikes",
+                "Regional geofence boundaries with smooth multiplier gradient transitions",
+                "Audit log recording every surge quote with timestamp and market metrics"
+            ],
+            "roadmap": [
+                "Milestone 1: Redis sliding window event tracker for search events & available units",
+                "Milestone 2: Elasticity pricing algorithm and multiplier ceiling caps",
+                "Milestone 3: Real-time quote generation API with cryptographic quote tokens",
+                "Milestone 4: Simulated demand spike stress tests proving market equilibrium"
+            ],
+            "industry_rubric": "Evaluates understanding of market clearing price mechanisms, prevention of sudden price cliff edges between adjacent zones, and algorithmic stability."
+        },
+        # Intermediate 2
+        {
+            "id": "mp-int-02",
+            "title": "Multi-Party Marketplace Escrow & Split Payouts with Stripe Connect",
+            "difficulty": "Intermediate",
+            "hours": 30,
+            "primary_skills": ["Python", "FastAPI", "PostgreSQL", "Docker", "SQL"],
+            "non_tech_competencies": ["Payment Escrow Architecture", "Double-Entry Accounting", "Regulatory Compliance"],
+            "executive_summary": "Marketplaces cannot directly pocket transaction funds; they act as intermediaries holding buyer payments in escrow, deducting a platform take-rate, and releasing payouts upon verified delivery.",
+            "architecture_summary": "Payment orchestration engine managing multi-party escrow states, Stripe Connect destination charges, and automated fee distribution.",
+            "key_features": [
+                "Two-phase payment intent with capture on fulfillment verification",
+                "Configurable platform take-rate / commission calculation",
+                "Automated seller transfer routing with reverse transfer on refund",
+                "Webhook idempotency handling guaranteeing zero duplicate charges"
+            ],
+            "roadmap": [
+                "Milestone 1: Multi-party transaction database schema (Orders, Escrows, Payouts)",
+                "Milestone 2: Stripe Connect API client with idempotency-key headers",
+                "Milestone 3: Webhook listener processing checkout.session.completed & delivery confirmations",
+                "Milestone 4: Edge-case test harness simulating partial refunds and dispute chargebacks"
+            ],
+            "industry_rubric": "Evaluates idempotency handling, avoidance of floating-point money rounding errors (integer cents only), and resilient multi-party state transitions."
+        },
+        # Intermediate 3
+        {
+            "id": "mp-int-03",
+            "title": "High-Throughput Batch Order Dispatcher with Bipartite Graph Matching",
+            "difficulty": "Intermediate",
+            "hours": 28,
+            "primary_skills": ["Python", "Go", "Redis", "PostgreSQL", "pytest"],
+            "non_tech_competencies": ["Combinatorial Optimization", "Batch Dispatching", "Queue Management"],
+            "executive_summary": "Greedy first-come-first-served dispatching leads to suboptimal routes and long wait times. This dispatcher pools orders in 10-second batch windows and solves the assignment problem using bipartite graph matching (Hungarian algorithm).",
+            "architecture_summary": "Background batch optimization worker consuming pending orders and available couriers, executing cost matrix minimization, and dispatching assignments atomically.",
+            "key_features": [
+                "Time-windowed batch accumulator collecting orders and candidate couriers",
+                "Cost matrix generation factoring in distance, wait time, and courier ratings",
+                "Kuhn-Munkres (Hungarian) matching maximizing global fulfillment efficiency",
+                "Fallback to greedy assignment if batch worker latency exceeds 2 seconds"
+            ],
+            "roadmap": [
+                "Milestone 1: Order queue and batch window scheduler",
+                "Milestone 2: Cost matrix calculation engine with distance weighting",
+                "Milestone 3: Bipartite matching solver with atomic Redis reservation",
+                "Milestone 4: Comparative benchmark proving >= 22% reduction in total customer wait time vs greedy dispatch"
+            ],
+            "industry_rubric": "Evaluates algorithmic optimization skills, awareness of O(N^3) computational limits, and practical timeout fallbacks."
+        },
+        # Intermediate 4
+        {
+            "id": "mp-int-04",
+            "title": "Marketplace Disintermediation & Fee-Evasion Detection Pipeline",
+            "difficulty": "Intermediate",
+            "hours": 26,
+            "primary_skills": ["Python", "FastAPI", "PostgreSQL", "Docker", "Git"],
+            "non_tech_competencies": ["Platform Leakage & Fraud", "Content Moderation", "Heuristic Detection"],
+            "executive_summary": "Platform disintermediation occurs when buyers and sellers connect on-platform but conduct payments off-platform (e.g. Venmo, WhatsApp, cash) to evade commission fees. This pipeline inspects message streams to detect and flag fee evasion.",
+            "architecture_summary": "Message auditing pipeline scanning in-platform buyer-seller chat for phone numbers, email obfuscations, off-platform payment handles, and external links.",
+            "key_features": [
+                "Regex and phonetic pattern matching for obfuscated phone numbers",
+                "Detection of payment keyword handles ('venmo', 'zelle', 'cashapp', 'paypal', 'wire')",
+                "Risk scoring engine assigning disintermediation probability to buyer-seller pairs",
+                "Automated warning prompts and seller shadowbanning workflows"
+            ],
+            "roadmap": [
+                "Milestone 1: Chat message ingestion schema and message audit ledger",
+                "Milestone 2: Obfuscated contact pattern extractor and phonetic normalizer",
+                "Milestone 3: Real-time interceptor middleware evaluating message risk score",
+                "Milestone 4: Adversarial test suite with 50+ adversarial evasion tricks"
+            ],
+            "industry_rubric": "Evaluates understanding of platform economics, regex precision/recall tradeoffs, and non-blocking asynchronous pipeline design."
+        },
+        # Advanced 1
+        {
+            "id": "mp-adv-01",
+            "title": "Uber-Scale Geospatial Ride Dispatch & Dynamic Pricing System with H3 Grid & Kafka",
+            "difficulty": "Advanced",
+            "hours": 38,
+            "primary_skills": ["Python", "Go", "Redis", "Apache Kafka", "Docker"],
+            "non_tech_competencies": ["Large-Scale Distributed Systems", "Hexagonal Geospatial Indexing", "High-Throughput Streaming"],
+            "executive_summary": "High-frequency ridehailing platforms process tens of thousands of GPS updates per second across hexagonal grid partitions. This system utilizes Uber H3 spatial indexes and Kafka event streams to coordinate distributed dispatching and localized surge pricing.",
+            "architecture_summary": "Distributed event-driven architecture ingesting driver telemetry into Kafka, indexing locations into H3 resolution-8 hexagonal cells in Redis, and executing localized dispatching.",
+            "key_features": [
+                "Uber H3 spatial index mapping latitude/longitude coordinates to resolution-8 hexagonal cells",
+                "Kafka topic partitioning by geospatial cell ID for linear horizontal scalability",
+                "Sub-50ms supply/demand aggregations per hexagon",
+                "Ring-k neighborhood expansion looking up drivers in adjacent hexes when immediate cell is depleted"
+            ],
+            "roadmap": [
+                "Milestone 1: Kafka GPS telemetry ingestion pipeline with H3 spatial encoding",
+                "Milestone 2: Redis in-memory hex registry with TTL expiration for inactive drivers",
+                "Milestone 3: Multi-hex ring expansion dispatch algorithm",
+                "Milestone 4: High-volume Locust load test simulating 5,000 active concurrent drivers and 500 requests/sec"
+            ],
+            "industry_rubric": "Evaluates distributed partition strategies, memory footprint optimization in Redis, and zero deadlocks during high-concurrency dispatch."
+        },
+        # Advanced 2
+        {
+            "id": "mp-adv-02",
+            "title": "Double-Entry Multi-Party Accounting Ledger with ACID Transaction Guarantees",
+            "difficulty": "Advanced",
+            "hours": 36,
+            "primary_skills": ["Python", "SQL", "PostgreSQL", "FastAPI", "Docker"],
+            "non_tech_competencies": ["Financial Ledger Engineering", "ACID Transactions", "Idempotency & Auditability"],
+            "executive_summary": "In a three-party marketplace (Buyer, Seller, Platform), every penny must balance. This system implements an immutable, double-entry financial ledger where every credit has an equal and opposite debit, backed by strict database constraints.",
+            "architecture_summary": "Append-only relational accounting ledger built on PostgreSQL with strict foreign keys, check constraints preventing negative balance drifts, and serialized transactions.",
+            "key_features": [
+                "Immutable journal entry table with line items enforcing sum(Credits) - sum(Debits) = 0",
+                "Optimistic concurrency control with account versioning",
+                "Cryptographic SHA-256 hash chaining verifying ledger integrity",
+                "Automated end-of-day balance reconciliation script asserting zero variance"
+            ],
+            "roadmap": [
+                "Milestone 1: Double-entry ledger schema (Accounts, Journals, Postings) with check constraints",
+                "Milestone 2: Atomic posting service supporting escrow holds, fee splits, and payouts",
+                "Milestone 3: Concurrent transfer simulation with PostgreSQL SERIALIZABLE transaction isolation",
+                "Milestone 4: Automated audit runner verifying cryptographic hash chain against tampering"
+            ],
+            "industry_rubric": "Evaluates financial engineering rigor, mastery of relational transaction isolation levels (SERIALIZABLE vs READ COMMITTED), and prevention of race condition overdrafts."
+        },
+        # Advanced 3
+        {
+            "id": "mp-adv-03",
+            "title": "Generalized Second-Price (GSP) Sponsored Listing Auction Engine",
+            "difficulty": "Advanced",
+            "hours": 36,
+            "primary_skills": ["Python", "FastAPI", "Redis", "PostgreSQL", "Docker"],
+            "non_tech_competencies": ["Auction Theory & Mechanism Design", "Ad Monetization", "Latency Budgets"],
+            "executive_summary": "E-commerce marketplaces monetize search rankings via sponsored listing auctions. This engine runs a real-time Generalized Second-Price (GSP) auction calculating winning ad placements and second-price cost-per-click (CPC) within a 20ms SLA.",
+            "architecture_summary": "In-memory auction bidding engine ranking seller bids using Expected Cost Per Mille (eCPM = Bid * CTR) and calculating second-price billing amounts.",
+            "key_features": [
+                "Generalized Second-Price auction mechanism where winner pays the minimum bid necessary to retain rank",
+                "Historical Click-Through Rate (CTR) quality score weighting bids to protect user experience",
+                "Sub-20ms auction execution using Redis sorted sets and pre-computed quality scores",
+                "Budget pacing algorithm distributing daily seller spend evenly across hours"
+            ],
+            "roadmap": [
+                "Milestone 1: Advertiser campaign schema, bidding limits, and daily budget counters",
+                "Milestone 2: In-memory GSP auction solver calculating winner rankings and second-price charges",
+                "Milestone 3: Fast auction endpoint integrated into search query pipeline",
+                "Milestone 4: Benchmark suite verifying sub-20ms P99 latency under 2,000 requests/sec"
+            ],
+            "industry_rubric": "Evaluates auction mechanism theory (truthful bidding incentives), real-time latency budget management, and algorithmic correctness."
+        },
+        # Advanced 4
+        {
+            "id": "mp-adv-04",
+            "title": "Zero-Trust Marketplace Fraud & Sybil Attack Prevention Mesh",
+            "difficulty": "Advanced",
+            "hours": 34,
+            "primary_skills": ["Python", "FastAPI", "Redis", "PostgreSQL", "Docker"],
+            "non_tech_competencies": ["Trust & Safety Engineering", "Graph Anomaly Detection", "Sybil Resistance"],
+            "executive_summary": "Fraudulent rings create fake buyer and seller accounts to execute wash trading, fake review farming, and stolen credit card cashouts. This security mesh builds a graph-based identity network detecting collusion and Sybil rings.",
+            "architecture_summary": "Real-time fraud detection pipeline analyzing device fingerprints, IP subnets, payment method hashes, and interaction graphs.",
+            "key_features": [
+                "Graph network analysis identifying circular transaction loops between buyer and seller clusters",
+                "Device fingerprint and payment card hash linking identifying multi-account operators",
+                "Velocity tripwires blocking accounts with abnormal booking frequency",
+                "Automated risk score calculation triggering SMS/ID verification challenges"
+            ],
+            "roadmap": [
+                "Milestone 1: Identity and device telemetry ingestion pipeline",
+                "Milestone 2: Circular transaction loop detector and shared attribute clustering",
+                "Milestone 3: Real-time risk scoring middleware intercepting suspicious checkouts",
+                "Milestone 4: Fraud simulation suite asserting detection of 5 distinct collusion attack vectors"
+            ],
+            "industry_rubric": "Evaluates understanding of marketplace fraud vectors, graph data modeling, and balancing fraud catch-rate against false-positive customer friction."
+        }
     ]
 }
 

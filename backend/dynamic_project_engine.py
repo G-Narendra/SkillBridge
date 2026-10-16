@@ -58,7 +58,7 @@ class BlueprintCacheManager:
     def compute_key(self, role: str, missing_skills: List[str], project_index: int, is_freshman: bool = False) -> str:
         clean_role = role.strip().lower()
         clean_skills = ":".join(sorted([s.strip().lower() for s in missing_skills]))
-        raw = f"v6|{clean_role}|{clean_skills}|{project_index}|{'freshman' if is_freshman else 'standard'}"
+        raw = f"v7|{clean_role}|{clean_skills}|{project_index}|{'freshman' if is_freshman else 'standard'}"
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
     def get(self, key: str) -> Optional[Dict[str, Any]]:
